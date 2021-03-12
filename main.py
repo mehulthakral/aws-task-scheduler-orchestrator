@@ -2,10 +2,12 @@ from flask import Flask, render_template, jsonify, request, abort, Response
 from flask_cors import CORS
 import requests
 import random
+import time
 
 from pytz import utc
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 
 from datetime import timedelta  # required for current time
@@ -15,10 +17,11 @@ import logging
 logging.basicConfig()
 logging.getLogger('apscheduler').setLevel(logging.DEBUG)
 
-scheduler = BackgroundScheduler()
+# scheduler = BackgroundScheduler()
 
 jobstores = {
-    'default': SQLAlchemyJobStore(url='postgresql://postgres:postgres@123@localhost:5432/jobs', tablename='scheduler_jobs')
+    # 'default': SQLAlchemyJobStore(url='postgresql://postgres:postgres@123@localhost:5432/jobs', tablename='scheduler_jobs')
+    'default': MemoryJobStore()
 }
 
 executors = {
@@ -45,8 +48,15 @@ scheduler.start()
 # Callback Function
 
 
-def lambdaCaller(TaskURL):
-    print("Running lambda: ", TaskURL)
+def lambdaCaller(TaskURL,id):
+    print("Started Invocation")
+    # time.sleep(50)
+    send=requests.get(TaskURL)
+    res=eval(send.content)
+    print(send.status_code, res)
+    if(send.status_code != 200 or 'errorMessage' in res):
+        print("Task failed")
+    print("Completed lambda: ", id, TaskURL)
 
 
 @app.route('/tasks', methods=["POST"])
@@ -67,7 +77,7 @@ def schedule():
         lambdaCaller,
         trigger='date',
         jobstore='default',
-        args=[TaskURL],
+        args=[TaskURL,str(id)],
         id=str(id),
         max_instances=1,
         run_date=now + timedelta(milliseconds=timeInMS)
