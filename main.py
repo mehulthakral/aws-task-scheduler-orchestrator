@@ -6,6 +6,7 @@ import random
 import time
 
 from pytz import utc
+import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.jobstores.memory import MemoryJobStore
@@ -107,7 +108,7 @@ def failedInDb(Taskid):
 # Callback Function
 
 
-def lambdaCaller(TaskURL, Taskid):
+def lambdaCaller(TaskURL, Taskid, retries, timeBetweenRetries):
     print("Started Invocation")
     runningInDb(Taskid)
     # time.sleep(50)
@@ -117,40 +118,92 @@ def lambdaCaller(TaskURL, Taskid):
     if(send.status_code != 200 or 'errorMessage' in res):
         print("Task failed")
         failedInDb(Taskid)
+        if retries is not None and retries > 0:
+            print("RETRYING TASKID: ", Taskid, " RETRY LEFT: ", retries)
+            now = datetime.now(utc)
+            scheduler.add_job(
+                lambdaCaller,
+                trigger='date',
+                jobstore='default',
+                args=[TaskURL, str(Taskid), int(retries)-1,
+                      timeBetweenRetries],
+                id=str(Taskid),
+                max_instances=1,
+                run_date=now + timeBetweenRetries
+            )
+
     else:
         print("Completed lambda: ", Taskid, TaskURL)
         completedInDb(Taskid)
+
+
+# Additional details for date time
+# For frontend : https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-local
+# Apply min attribute for current time as a function can't be scheduled in past
 
 
 # WARNING : While testing remember that the schedule function takes schedule time in miliseconds, so provide parameters accordingly
 @app.route('/tasks', methods=["POST"])
 def schedule():
 
+    # Option 1 : Using delay in miliseconds
+    # Option 2 : Using date and time
+
     json = request.json
 
+    choosenOption = json['schedulingOption']
     TaskURL = json['TaskURL']
-    timeInMS = json['timeInMS']
+    retries = json['retries']
+    timeBetweenRetries = json['timeBetweenRetries']
 
-    print(TaskURL, timeInMS)
+    if choosenOption == '1':
+        timeInMS = json['timeInMS']
+        now = datetime.now(utc)
+        id = scheduleInDb(TaskURL, now + timedelta(milliseconds=timeInMS))
 
-    # Get unique ID from postgres [TODO]
-    now = datetime.utcnow()
-    id = scheduleInDb(TaskURL, now + timedelta(milliseconds=timeInMS))
+        scheduler.add_job(
+            lambdaCaller,
+            trigger='date',
+            jobstore='default',
+            args=[TaskURL, str(id), int(retries),
+                  timedelta(milliseconds=timeBetweenRetries)],
+            id=str(id),
+            max_instances=1,
+            run_date=now + timedelta(milliseconds=timeInMS)
+        )
 
-    scheduler.add_job(
-        lambdaCaller,
-        trigger='date',
-        jobstore='default',
-        args=[TaskURL, str(id)],
-        id=str(id),
-        max_instances=1,
-        run_date=now + timedelta(milliseconds=timeInMS)
-    )
+        return jsonify({"id": id})
 
-    print("Task scheduled with id:{0}, url:{1} and delay:{2}".format(
-        id, json["TaskURL"], json["timeInMS"]))
+    elif choosenOption == '2':
+        datetimeStr = json['dateTimeValue']
+        print("Local time: ", datetimeStr)
+        # Assuming the input will always from a Indian Timezone
+        # Converting to utc
+        local = pytz.timezone('Asia/Kolkata')
+        # Expecting format from frontend: "13 Mar 2021 07:08:38"
+        datetimeStr = datetime.strptime(datetimeStr, "%d %b %Y %H:%M:%S")
+        local_time = local.localize(datetimeStr, is_dst=None)
+        utc_time = local_time.astimezone(pytz.utc)
 
-    return jsonify({"id": id})
+        print("UTC Time: ", utc_time)
+
+        id = scheduleInDb(TaskURL, utc_time)
+
+        scheduler.add_job(
+            lambdaCaller,
+            trigger='date',
+            jobstore='default',
+            args=[TaskURL, str(id), int(retries),
+                  timedelta(milliseconds=timeBetweenRetries)],
+            id=str(id),
+            max_instances=1,
+            run_date=utc_time
+        )
+
+        print("Task scheduled : url:{0} at datetime:{1}".format(
+            json["TaskURL"], json["dateTimeValue"]))
+
+        return jsonify({"id": id})
 
 
 @ app.route('/tasks/<Taskid>', methods=["DELETE"])
@@ -158,14 +211,14 @@ def cancel(Taskid):
 
     print("Cancel ID: ", Taskid)
 
-    # Checking if cancelled successfully [DONE]
+    # Checking if cancelled successfully
     try:
         scheduler.get_job(Taskid, 'default')
     except:
         print("Job with id: ", Taskid, "Not found")
         return jsonify(False)
 
-    # Checking if the Taskid is valid and can be cancelled [DONE]
+    # Checking if the Taskid is valid and can be cancelled
     try:
         scheduler.remove_job(Taskid)
         cancelInDb(Taskid)
