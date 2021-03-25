@@ -59,18 +59,23 @@ CORS(app)
 scheduler.start()
 
 
-def scheduleInDb(TaskURL, RunTime):
+def scheduleInDb(TaskURL, RunTime, LambdaName, LambdaDescription):
 
     print("SCHEDULING IN DB: ", TaskURL, RunTime)
 
-    idQuery = "INSERT INTO " + allTaskTable + " (url,run_time,status)" + " VALUES('{url}','{run_time}','Added')".format(url=TaskURL,
-                                                                                                                        run_time=RunTime) + " RETURNING id;"
+    idQuery = "INSERT INTO " + allTaskTable + " (url,run_time,lambda_name,lambda_description,status)" + " VALUES('{url}','{run_time}','{lambda_name}','{lambda_description}','Added')".format(url=TaskURL,
+                                                                                                                                                                                              run_time=RunTime,
+                                                                                                                                                                                              lambda_name=LambdaName,
+                                                                                                                                                                                              lambda_description=LambdaDescription) + " RETURNING id;"
     cur.execute(idQuery)
     Taskid = cur.fetchone()[0]
     conn.commit()
 
-    scheduleQuery = "INSERT INTO " + tableName + " (id,url,run_time,status)" + "VALUES('{id}','{url}','{run_time}','Scheduled')".format(id=Taskid,
-                                                                                                                                        url=TaskURL, run_time=RunTime) + ";"
+    scheduleQuery = "INSERT INTO " + tableName + " (id,url,run_time,lambda_name,lambda_description,status)" + "VALUES('{id}','{url}','{run_time}','{lambda_name}','{lambda_description}','Scheduled')".format(id=Taskid,
+                                                                                                                                                                                                              url=TaskURL,
+                                                                                                                                                                                                              run_time=RunTime,
+                                                                                                                                                                                                              lambda_name=LambdaName,
+                                                                                                                                                                                                              lambda_description=LambdaDescription) + ";"
     cur.execute(scheduleQuery)
     conn.commit()
     print("Task scheduled with id : ", Taskid)
@@ -155,11 +160,14 @@ def schedule():
     TaskURL = json['TaskURL']
     retries = json['retries']
     timeBetweenRetries = json['timeBetweenRetries']
+    LambdaName = str(json['LambdaName'])
+    LambdaDescription = str(json['LambdaDescription'])
 
     if choosenOption == '1':
         timeInMS = json['timeInMS']
         now = datetime.now(utc)
-        id = scheduleInDb(TaskURL, now + timedelta(milliseconds=timeInMS))
+        id = scheduleInDb(
+            TaskURL, now + timedelta(milliseconds=timeInMS), LambdaName, LambdaDescription)
 
         scheduler.add_job(
             lambdaCaller,
@@ -187,7 +195,8 @@ def schedule():
 
         print("UTC Time: ", utc_time)
 
-        id = scheduleInDb(TaskURL, utc_time)
+        id = scheduleInDb(
+            TaskURL, utc_time, LambdaName, LambdaDescription)
 
         scheduler.add_job(
             lambdaCaller,
