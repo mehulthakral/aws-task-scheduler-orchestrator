@@ -4,6 +4,9 @@ from flask_cors import CORS
 import requests
 import random
 import time
+import string
+import random
+import create
 
 from pytz import utc
 import pytz
@@ -118,9 +121,13 @@ def lambdaCaller(TaskURL, Taskid, retries, timeBetweenRetries):
     runningInDb(Taskid)
     # time.sleep(50)
     send = requests.get(TaskURL)
-    res = eval(send.content)
+    try:
+        res = eval(send.content)
+    except Exception as e:
+        print(e)
+        res = send.content
     print(send.status_code, res)
-    if(send.status_code != 200 or 'errorMessage' in res):
+    if(send.status_code != 200 or isinstance(res, dict) and 'errorMessage' in res):
         print("Task failed")
         failedInDb(Taskid)
         if retries is not None and retries > 0:
@@ -141,6 +148,12 @@ def lambdaCaller(TaskURL, Taskid, retries, timeBetweenRetries):
         print("Completed lambda: ", Taskid, TaskURL)
         completedInDb(Taskid)
 
+def check(json, l):
+    for att in l:
+        if att not in json:
+            return False, Response(att + " attribute is required",status=400,mimetype="application/json")
+    return True, ""
+    
 
 # Additional details for date time
 # For frontend : https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-local
@@ -156,14 +169,76 @@ def schedule():
 
     json = request.json
 
+    correct, res = check(json,['schedulingOption','taskType'])
+
+    if(correct==False):
+        return res
+
     choosenOption = json['schedulingOption']
-    TaskURL = json['TaskURL']
-    retries = json['retries']
-    timeBetweenRetries = json['timeBetweenRetries']
-    LambdaName = str(json['LambdaName'])
-    LambdaDescription = str(json['LambdaDescription'])
+    taskType = json['taskType']
+    TaskURL = None
+    retries = None
+    timeBetweenRetries = None
+
+    if("retries" in json):
+        correct, res = check(json,['timeBetweenRetries'])
+
+        if(correct==False):
+            return res
+
+        retries = json['retries']
+        timeBetweenRetries = json['timeBetweenRetries']
+
+    else:
+        retries = 0
+        timeBetweenRetries = 0
+    
+    LambdaName = str(json['LambdaName']) if "LambdaName" in json else ''.join(random.choices(string.ascii_uppercase +
+                             string.digits, k = 7))
+    LambdaDescription = str(json['LambdaDescription']) if "LambdaDescription" in json else ''
+
+    if(taskType.lower()=="function"):
+        correct, res = check(json,['funcSrc','requirements','region', 'access_key', 'secret_access_key', 'session_token', 'args'])
+
+        if(correct==False):
+            return res
+
+        funcSrc = json["funcSrc"]
+        requirements = json["requirements"]
+        region = json["region"]
+        access_key = json["access_key"]
+        secret_access_key = json["secret_access_key"]
+        session_token = json["session_token"]
+        args = json["args"]
+
+        success, res = create.deploy(funcSrc, requirements, LambdaName, region, access_key, secret_access_key, session_token)
+
+        if(success==False):
+            return Response(res,status=400,mimetype="application/json")
+
+        print("Deployed successfully: " + res)
+        if(len(args)>0):
+            for a in args:
+                res += "/"+a
+        TaskURL = res
+
+    elif(taskType.lower()=="url"):
+        correct, res = check(json,['TaskURL'])
+
+        if(correct==False):
+            return res
+
+        TaskURL = json["TaskURL"] 
+
+    else:
+        return Response("Please provide correct taskType",status=400,mimetype="application/json")
 
     if choosenOption == '1':
+        correct, res = check(json,['timeInMS'])
+
+        if(correct==False):
+            return res
+
         timeInMS = json['timeInMS']
         now = datetime.now(utc)
         id = scheduleInDb(
@@ -183,6 +258,11 @@ def schedule():
         return jsonify({"id": id})
 
     elif choosenOption == '2':
+        correct, res = check(json,['dateTimeValue'])
+
+        if(correct==False):
+            return res
+
         datetimeStr = json['dateTimeValue']
         print("Local time: ", datetimeStr)
         # Assuming the input will always from a Indian Timezone
@@ -210,7 +290,7 @@ def schedule():
         )
 
         print("Task scheduled : url:{0} at datetime:{1}".format(
-            json["TaskURL"], json["dateTimeValue"]))
+            TaskURL, json["dateTimeValue"]))
 
         return jsonify({"id": id})
 
