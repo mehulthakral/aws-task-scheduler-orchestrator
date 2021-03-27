@@ -57,7 +57,7 @@ scheduler = BackgroundScheduler(
 )
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, allow_headers='*', origins='*')
 
 scheduler.start()
 
@@ -148,12 +148,13 @@ def lambdaCaller(TaskURL, Taskid, retries, timeBetweenRetries):
         print("Completed lambda: ", Taskid, TaskURL)
         completedInDb(Taskid)
 
+
 def check(json, l):
     for att in l:
         if att not in json:
-            return False, Response(att + " attribute is required",status=400,mimetype="application/json")
+            return False, Response(att + " attribute is required", status=400, mimetype="application/json")
     return True, ""
-    
+
 
 # Additional details for date time
 # For frontend : https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-local
@@ -169,9 +170,9 @@ def schedule():
 
     json = request.json
 
-    correct, res = check(json,['schedulingOption','taskType'])
+    correct, res = check(json, ['schedulingOption', 'taskType'])
 
-    if(correct==False):
+    if(correct == False):
         return res
 
     choosenOption = json['schedulingOption']
@@ -181,9 +182,9 @@ def schedule():
     timeBetweenRetries = None
 
     if("retries" in json):
-        correct, res = check(json,['timeBetweenRetries'])
+        correct, res = check(json, ['timeBetweenRetries'])
 
-        if(correct==False):
+        if(correct == False):
             return res
 
         retries = json['retries']
@@ -192,15 +193,24 @@ def schedule():
     else:
         retries = 0
         timeBetweenRetries = 0
-    
+
+    try:
+        retries = int(retries)
+        timeBetweenRetries = int(timeBetweenRetries)
+    except:
+        retries = 0
+        timeBetweenRetries = 0
+
     LambdaName = str(json['LambdaName']) if "LambdaName" in json else ''.join(random.choices(string.ascii_uppercase +
-                             string.digits, k = 7))
-    LambdaDescription = str(json['LambdaDescription']) if "LambdaDescription" in json else ''
+                                                                                             string.digits, k=7))
+    LambdaDescription = str(
+        json['LambdaDescription']) if "LambdaDescription" in json else ''
 
-    if(taskType.lower()=="function"):
-        correct, res = check(json,['funcSrc','requirements','region', 'access_key', 'secret_access_key', 'session_token', 'args'])
+    if(taskType.lower() == "function"):
+        correct, res = check(json, ['funcSrc', 'requirements', 'region',
+                                    'access_key', 'secret_access_key', 'session_token', 'args'])
 
-        if(correct==False):
+        if(correct == False):
             return res
 
         funcSrc = json["funcSrc"]
@@ -211,38 +221,44 @@ def schedule():
         session_token = json["session_token"]
         args = json["args"]
 
-        success, res = create.deploy(funcSrc, requirements, LambdaName, region, access_key, secret_access_key, session_token)
+        success, res = create.deploy(
+            funcSrc, requirements, LambdaName, region, access_key, secret_access_key, session_token)
 
-        if(success==False):
-            return Response(res,status=400,mimetype="application/json")
+        if(success == False):
+            return Response(res, status=400, mimetype="application/json")
 
         print("Deployed successfully: " + res)
-        if(len(args)>0):
+        if(len(args) > 0):
             for a in args:
                 res += "/"+a
         TaskURL = res
 
-    elif(taskType.lower()=="url"):
-        correct, res = check(json,['TaskURL'])
+    elif(taskType.lower() == "url"):
+        correct, res = check(json, ['TaskURL'])
 
-        if(correct==False):
+        if(correct == False):
             return res
 
-        TaskURL = json["TaskURL"] 
+        TaskURL = json["TaskURL"]
 
     else:
-        return Response("Please provide correct taskType",status=400,mimetype="application/json")
+        return Response("Please provide correct taskType", status=400, mimetype="application/json")
+
+    print("RETRIES: ", retries)
+    print(timeBetweenRetries)
 
     if choosenOption == '1':
-        correct, res = check(json,['timeInMS'])
+        correct, res = check(json, ['timeInMS'])
 
-        if(correct==False):
+        if(correct == False):
             return res
 
-        timeInMS = json['timeInMS']
+        timeInMS = int(json['timeInMS'])
         now = datetime.now(utc)
         id = scheduleInDb(
             TaskURL, now + timedelta(milliseconds=timeInMS), LambdaName, LambdaDescription)
+
+        print("GENERATED ID: ", id)
 
         scheduler.add_job(
             lambdaCaller,
@@ -258,9 +274,9 @@ def schedule():
         return jsonify({"id": id})
 
     elif choosenOption == '2':
-        correct, res = check(json,['dateTimeValue'])
+        correct, res = check(json, ['dateTimeValue'])
 
-        if(correct==False):
+        if(correct == False):
             return res
 
         datetimeStr = json['dateTimeValue']
