@@ -11,7 +11,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1",
+					"raw": "https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=1",
 					"protocol": "https",
 					"host": [
 						"iiiy1ms67f",
@@ -22,6 +22,12 @@
 					],
 					"path": [
 						"v1"
+					],
+					"query": [
+						{
+							"key": "num",
+							"value": "1"
+						}
 					]
 				}
 			},
@@ -56,7 +62,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://127.0.0.1:5000/tasks/1",
+					"raw": "http://127.0.0.1:5000/tasks/28",
 					"protocol": "http",
 					"host": [
 						"127",
@@ -67,7 +73,7 @@
 					"port": "5000",
 					"path": [
 						"tasks",
-						"1"
+						"28"
 					]
 				}
 			},
@@ -80,7 +86,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"url\":\"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1\",\n    \"delay\":1000\n}",
+					"raw": "{\n    \"funcSrc\":\"def hello(s,a,b):\\n\\tfrom datetime import datetime\\n\\treturn str(datetime.now()) + \\\" Hello World! \\\" + s + \\\" \\\" + a + \\\" \\\" + b\",\n    \"args\":[\"we\",\"are\",\"done\"],\n    \"timeInMS\":10000,\n    \"schedulingOption\":\"1\",\n    \"taskType\":\"function\",\n    \"requirements\":\"\",\n    \"region\":\"us-east-1\",\n    \"access_key\":\"ASIAXVBHKSIVIAMMQOOV\",\n    \"secret_access_key\":\"LNGQDs8o6p9+KqrlA1RfdkiEK2x63MrkjHOzbL0s\",\n    \"session_token\":\"FwoGZXIvYXdzEOX//////////wEaDKEItnWQVSu9bmrEOyLGAbziYTt96cv3g0p0HrgwHPFkB0+rctMmsg23mb/idti/TUC+icfgCN1GCnzX0d57ZUrkHvLUj3g6VAB3UbvWqnKc1B4Jsrg7tWCOMfTHExP+dtYHo+CkJxyelpNB0gs3+5Bv8pBXBqiMVrHAGzwLccoVO5OAZ5CjgoMx3cdGOcWGfiQyEVu6rHAEU8nkR5ru4MERIFSCaZtHY+CqUtK0WndT7IRuDQ9+vaQD3S1TDqziOELnBMKrr7BD7NTB4G8FGeKD3n9GVCiY6/iCBjItw1WvSfFFs6IUvq9y+mvd4gW/ecKvlRp1f9gjFrdsz6DApGzBo4nxnGGu3ekZ\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -177,6 +183,270 @@
 						"tasks",
 						"retrieve",
 						"completed"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Register user",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "",
+						"value": "user",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"user\",\n    \"password\": \"pwd\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:5000/login",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login user",
+			"request": {
+				"method": "HEAD",
+				"header": [
+					{
+						"key": "username",
+						"value": "user",
+						"type": "text"
+					},
+					{
+						"key": "password",
+						"value": "pwd",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:5000/login",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Orchestrate",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "username",
+						"value": "user",
+						"type": "text"
+					},
+					{
+						"key": "password",
+						"value": "pwd",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"initialDelay\": 20000,\n    \"tasks\":[\n        {\n            \"taskURL\":\"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=1\", \n            \"conditionCheckTaskURL\": \"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=1\", \n            \"fallbackTaskURL\": \"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=1\", \n            \"timeDelayForConditionCheck\": 5000, \n            \"conditionCheckRetries\": 2,\n            \"timeDelayBetweenRetries\": 5000\n        },\n        {\n            \"taskURL\":\"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=1\", \n            \"conditionCheckTaskURL\": \"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=0\", \n            \"fallbackTaskURL\": \"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=1\", \n            \"timeDelayForConditionCheck\": 5000, \n            \"conditionCheckRetries\": 2,\n            \"timeDelayBetweenRetries\": 5000\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:5000/taskset",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"taskset"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Modify orchestration",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "username",
+						"value": "user",
+						"type": "text"
+					},
+					{
+						"key": "password",
+						"value": "pwd",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": 16,\n    \"initialDelay\": 5000,\n    \"tasks\":[\n        {\n            \"taskURL\":\"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=1\", \n            \"conditionCheckTaskURL\": \"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=0\", \n            \"fallbackTaskURL\": \"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=1\", \n            \"timeDelayForConditionCheck\": 5000, \n            \"conditionCheckRetries\": 2,\n            \"timeDelayBetweenRetries\": 5000\n        },\n        {\n            \"taskURL\":\"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=1\", \n            \"conditionCheckTaskURL\": \"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=1\", \n            \"fallbackTaskURL\": \"https://iiiy1ms67f.execute-api.us-east-1.amazonaws.com/v1?num=1\", \n            \"timeDelayForConditionCheck\": 5000, \n            \"conditionCheckRetries\": 2,\n            \"timeDelayBetweenRetries\": 5000\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:5000/taskset",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"taskset"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Cancel Orchestration",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "username",
+						"value": "user",
+						"type": "text"
+					},
+					{
+						"key": "password",
+						"value": "pwd",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:5000/taskset/16",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"taskset",
+						"16"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Retrieve All Orchestration",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "username",
+						"value": "user",
+						"type": "text"
+					},
+					{
+						"key": "password",
+						"value": "pwd",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:5000/taskset/retrieve",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"taskset",
+						"retrieve"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Retrieve Orchestartion With Status",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "username",
+						"value": "user",
+						"type": "text"
+					},
+					{
+						"key": "password",
+						"value": "pwd",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:5000/taskset/retrieve/Cancelled",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5000",
+					"path": [
+						"taskset",
+						"retrieve",
+						"Cancelled"
 					]
 				}
 			},
