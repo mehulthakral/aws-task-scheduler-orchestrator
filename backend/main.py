@@ -32,11 +32,11 @@ conn = psycopg2.connect(
     host="localhost",
     port="5432"
 )
-# tableName defines the name of the table that will be updated in DB
-allTaskTable = "all_jobs"
+# tableName defines the name of the table that will be updated in the postgres DB
 tableName = "apscheduler_jobs"
+functionTableName = "function_data"
 
-# Tables for storing orchestrator taskset and tasks resp.
+# Tables for storing orchestrator taskset and tasks respectively
 taskSetTable = "task_set"
 orchestratorTasksTable = "orchestrator_tasks"
 
@@ -57,6 +57,7 @@ job_defaults = {
     'max_instances': 1
 }
 
+# Using a non blocking scheduler to ensure tasks can run parallely
 scheduler = BackgroundScheduler(
     jobstores=jobstores,
     executors=executors,
@@ -77,51 +78,55 @@ scheduler.start()
 """
 
 # Function for adding task in DB
-def scheduleInDb(TaskURL, RunTime, LambdaName, LambdaDescription):
+
+
+def scheduleInDb(TaskURL, RunTime, LambdaName, LambdaDescription, Username, SchedulingType):
 
     print("SCHEDULING IN DB: ", TaskURL, RunTime)
 
-    idQuery = "INSERT INTO " + allTaskTable + " (url,run_time,lambda_name,lambda_description,status)" + " VALUES('{url}','{run_time}','{lambda_name}','{lambda_description}','Added')".format(url=TaskURL,run_time=RunTime,lambda_name=LambdaName,lambda_description=LambdaDescription) + " RETURNING id;"
+    idQuery = "INSERT INTO " + tableName + " (url,run_time,lambda_name,lambda_description,status,execution_time,username,scheduling_type)" + " VALUES('{url}','{run_time}','{lambda_name}','{lambda_description}','Scheduled',0,'{username}','{scheduling_type}')".format(
+        url=TaskURL, run_time=RunTime, lambda_name=LambdaName, lambda_description=LambdaDescription, username=Username, scheduling_type=SchedulingType) + " RETURNING id;"
     cur.execute(idQuery)
     Taskid = cur.fetchone()[0]
     conn.commit()
 
-    scheduleQuery = "INSERT INTO " + tableName + " (id,url,run_time,lambda_name,lambda_description,status)" + "VALUES('{id}','{url}','{run_time}','{lambda_name}','{lambda_description}','Scheduled')".format(id=Taskid,url=TaskURL,run_time=RunTime,lambda_name=LambdaName,lambda_description=LambdaDescription) + ";"
-    cur.execute(scheduleQuery)
-    conn.commit()
     print("Task scheduled with id : ", Taskid)
     return Taskid
 
-"""
-    Please replace below 4 functions by one called as updateStatus and do changes in
-    places where they are called 
 
 """
-def cancelInDb(Taskid):
-    cancelQuery = "UPDATE " + tableName + \
-        " SET status = 'Cancelled' WHERE id = " + Taskid
-    cur.execute(cancelQuery)
+    Following function updates the status of a task with given Taskid in database
+
+"""
+
+
+def setStatusInDB(Taskid, status):
+    statusQuery = "UPDATE " + tableName + \
+        " SET status = '{statusValue}' WHERE id = {idValue}".format(
+            statusValue=status, idValue=Taskid)
+    cur.execute(statusQuery)
     conn.commit()
 
 
-def runningInDb(Taskid):
-    runningQuery = "UPDATE " + tableName + \
-        " SET status = 'Running' WHERE id = " + Taskid
-    cur.execute(runningQuery)
+"""
+    Following function updates the time taken to excute a task of given Taskid in database
+
+"""
+
+
+def updateExecutionTimeInDB(Taskid, ExecutionTime):
+    updateQuery = "UPDATE " + tableName + \
+        " SET execution_time = '{timeValue}' WHERE id = {idValue}".format(
+            timeValue=ExecutionTime, idValue=Taskid)
+    cur.execute(updateQuery)
     conn.commit()
 
 
-def completedInDb(Taskid):
-    completedQuery = "UPDATE " + tableName + \
-        " SET status = 'Completed' WHERE id = " + Taskid
-    cur.execute(completedQuery)
-    conn.commit()
-
-
-def failedInDb(Taskid):
-    failedQuery = "UPDATE " + tableName + \
-        " SET status = 'Failed' WHERE id = " + Taskid
-    cur.execute(failedQuery)
+def addFunctionDataInDB(Taskid, code, requirements):
+    insertQuery = "INSERT INTO " + functionTableName + \
+        " (id, code, requirements)" + " VALUES({idValue},'{codeValue}','{requirementsValue}')".format(
+            idValue=Taskid, codeValue=code, requirementsValue=requirements)
+    cur.execute(insertQuery)
     conn.commit()
 
 
@@ -151,11 +156,12 @@ def check_auth(headers):
     password = headers["password"]
     pwd = hashlib.sha256(password.encode()).hexdigest()
 
-    inp={"table":"credentials","columns":["username","password"],"where":"username='"+username+"' AND password='"+pwd+"'"}
-    send=requests.post(backend_url+'/api/v1/db/read',json=inp)
-    res=eval(send.content)
+    inp = {"table": "credentials", "columns": [
+        "username", "password"], "where": "username='"+username+"' AND password='"+pwd+"'"}
+    send = requests.post(backend_url+'/api/v1/db/read', json=inp)
+    res = eval(send.content)
 
-    if(len(res)>0):
+    if(len(res) > 0):
         return True, Response("Logged In", status=200, mimetype="application/json")
     else:
         return False, Response("Wrong username/password", status=401, mimetype="application/json")
@@ -182,18 +188,20 @@ def register():
     password = json["password"]
     pwd = hashlib.sha256(password.encode()).hexdigest()
 
-    if(len(username)==0 or len(password)==0):
+    if(len(username) == 0 or len(password) == 0):
         return Response("Empty username/password", status=400, mimetype="application/json")
 
-    inp={"table":"credentials","columns":["username","password"],"where":"username='"+username+"'"}
-    send=requests.post(backend_url+'/api/v1/db/read',json=inp)
-    res=eval(send.content)
+    inp = {"table": "credentials", "columns": [
+        "username", "password"], "where": "username='"+username+"'"}
+    send = requests.post(backend_url+'/api/v1/db/read', json=inp)
+    res = eval(send.content)
 
-    if(len(res)>0):
+    if(len(res) > 0):
         return Response("Username already exists", status=400, mimetype="application/json")
 
-    inp={"table":"credentials","columns":["username","password"],"data":[username,pwd],"type":"insert"}
-    send=requests.post(backend_url+'/api/v1/db/write',json=inp)
+    inp = {"table": "credentials", "columns": [
+        "username", "password"], "data": [username, pwd], "type": "insert"}
+    send = requests.post(backend_url+'/api/v1/db/write', json=inp)
     send.json()
 
     return Response("Registered successfully!", status=200, mimetype="application/json")
@@ -209,11 +217,16 @@ def register():
 """
 
 # Callback Function - for scheduler tasks
+
+
 def lambdaCaller(TaskURL, Taskid, retries, timeBetweenRetries):
     print("Started Invocation")
-    runningInDb(Taskid)
+    setStatusInDB(Taskid, "Running")
     # time.sleep(50)
+
+    startTime = datetime.now()
     send = requests.get(TaskURL)
+
     try:
         res = eval(send.content)
     except Exception as e:
@@ -222,7 +235,7 @@ def lambdaCaller(TaskURL, Taskid, retries, timeBetweenRetries):
     print(send.status_code, res)
     if(send.status_code != 200 or isinstance(res, dict) and 'errorMessage' in res):
         print("Task failed")
-        failedInDb(Taskid)
+        setStatusInDB(Taskid, "Failed")
         if retries is not None and retries > 0:
             print("RETRYING TASKID: ", Taskid, " RETRY LEFT: ", retries)
             now = datetime.now(utc)
@@ -238,15 +251,22 @@ def lambdaCaller(TaskURL, Taskid, retries, timeBetweenRetries):
             )
 
     else:
+        endTime = datetime.now()
+        timeDiffInMS = (endTime - startTime)
+        executionTime = timeDiffInMS.total_seconds() * 1000
+        updateExecutionTimeInDB(Taskid, executionTime)
+
         print("Completed lambda: ", Taskid, TaskURL)
-        completedInDb(Taskid)
+        setStatusInDB(Taskid, "Completed")
 
 # Function to schedule tasks
+
+
 @app.route('/tasks', methods=["POST"])
 def schedule():
 
     auth, res = check_auth(request.headers)
-    if(auth==False):
+    if(auth == False):
         return res
 
     username = request.headers["username"]
@@ -287,8 +307,10 @@ def schedule():
         retries = 0
         timeBetweenRetries = 0
 
-    LambdaName = str(json['LambdaName']) if "LambdaName" in json else ''.join(random.choices(string.ascii_uppercase +string.digits, k=7))
-    LambdaDescription = str(json['LambdaDescription']) if "LambdaDescription" in json else ''
+    LambdaName = str(json['LambdaName']) if "LambdaName" in json else ''.join(
+        random.choices(string.ascii_uppercase + string.digits, k=7))
+    LambdaDescription = str(
+        json['LambdaDescription']) if "LambdaDescription" in json else ''
 
     if(taskType.lower() == "function"):
         correct, res = check(json, ['funcSrc', 'requirements', 'region',
@@ -340,7 +362,10 @@ def schedule():
         timeInMS = int(json['timeInMS'])
         now = datetime.now(utc)
         id = scheduleInDb(
-            TaskURL, now + timedelta(milliseconds=timeInMS), LambdaName, LambdaDescription)
+            TaskURL, now + timedelta(milliseconds=timeInMS), LambdaName, LambdaDescription, username, taskType)
+
+        if(taskType.lower() == "function"):
+            addFunctionDataInDB(id, funcSrc, requirements)
 
         print("GENERATED ID: ", id)
 
@@ -376,7 +401,10 @@ def schedule():
         print("UTC Time: ", utc_time)
 
         id = scheduleInDb(
-            TaskURL, utc_time, LambdaName, LambdaDescription)
+            TaskURL, utc_time, LambdaName, LambdaDescription, username, taskType)
+
+        if(taskType.lower() == "function"):
+            addFunctionDataInDB(id, funcSrc, requirements)
 
         scheduler.add_job(
             lambdaCaller,
@@ -395,35 +423,43 @@ def schedule():
         return jsonify({"id": id})
 
 
-# Function to cancel scheduler tasks 
+# Function to cancel scheduler tasks
 @ app.route('/tasks/<Taskid>', methods=["DELETE"])
 def cancel(Taskid):
 
     auth, res = check_auth(request.headers)
-    if(auth==False):
+    if(auth == False):
         return res
 
     username = request.headers["username"]
 
     print("Cancel ID: ", Taskid)
 
-    # Checking if cancelled successfully
+    # Checking if the Taskid is valid and scheduled by the user and can be cancelled
+
     try:
         scheduler.get_job(Taskid, 'default')
+        taskQuery = "SELECT * FROM " + tableName + \
+            " WHERE id = {idValue} AND username = '{usernameValue}'".format(
+                idValue=Taskid, usernameValue=username)
+        cur.execute(taskQuery)
+        fetchedTask = cur.fetchall()
+        if(len(fetchedTask) == 0):
+            raise Exception("Invalid Id to cancel")
     except:
-        print("Job with id: ", Taskid, "Not found")
-        return jsonify(False)
+        print("Job with id: ", Taskid, "Invalid Id to cancel")
+        return Response("Not allowed to access TaskSetID "+str(Taskid), status=403, mimetype="application/json")
 
-    # Checking if the Taskid is valid and can be cancelled
+    # Checking if cancelled successfully
     try:
         scheduler.remove_job(Taskid)
-        cancelInDb(Taskid)
+        setStatusInDB(Taskid, "Cancelled")
         print("Cancelled task with id:{0}".format(Taskid))
-        return jsonify(True)
+        return Response("Cancelled "+str(Taskid), status=200, mimetype="application/json")
     except Exception as err:
         print("ERROR: ", err)
         print("TaskID ", Taskid, " doesn't exist")
-        return jsonify(False)
+        return Response("Internal Error"+str(Taskid), status=500, mimetype="application/json")
 
 
 # Function to check status of scheduler task
@@ -431,18 +467,21 @@ def cancel(Taskid):
 def checkStatus(Taskid):
 
     auth, res = check_auth(request.headers)
-    if(auth==False):
+    if(auth == False):
         return res
 
     username = request.headers["username"]
 
     retrieveQuery = "SELECT status FROM " + tableName + \
-        " WHERE id='{givenId}';".format(givenId=Taskid)
+        " WHERE id = {idValue} AND username = '{usernameValue}'".format(
+            idValue=Taskid, usernameValue=username)
     cur.execute(retrieveQuery)
     fetchedvalues = cur.fetchone()
     # # Iterate and append all task objects with id, url, delay which have status=status to tasks list
+    if(fetchedvalues is not None):
+        return jsonify(fetchedvalues[0])
 
-    return jsonify(fetchedvalues[0])
+    return Response("Not allowed to access TaskSetID "+str(Taskid), status=403, mimetype="application/json")
 
 
 # Function to modify scheduler task
@@ -450,7 +489,7 @@ def checkStatus(Taskid):
 def modify():
 
     auth, res = check_auth(request.headers)
-    if(auth==False):
+    if(auth == False):
         return res
 
     username = request.headers["username"]
@@ -458,6 +497,12 @@ def modify():
     print("ENTERED MODIFY")
 
     json = request.json
+
+    correct, res = check(json, ['Taskid', 'timeInMS'])
+
+    if(correct == False):
+        return Response("Taskid and timeInMS are required", status=400, mimetype="application/json")
+
     Taskid = str(json['Taskid'])
     timeInMS = int(json['timeInMS'])
     print(Taskid, timeInMS)
@@ -467,10 +512,17 @@ def modify():
         scheduler.get_job(Taskid, 'default')
         print("Modifying task with id:{0}, delay:{1}".format(
             json["Taskid"], json["timeInMS"]))
+        taskQuery = "SELECT * FROM " + tableName + \
+            " WHERE id = {idValue} AND username = '{usernameValue}'".format(
+                idValue=Taskid, usernameValue=username)
+        cur.execute(taskQuery)
+        fetchedTask = cur.fetchall()
+        if(len(fetchedTask) == 0):
+            raise Exception("Invalid Id to cancel")
     except:
         # Taskid doesn't exist
-        print("Taskid doesn't exist")
-        return jsonify(False)
+        print("Invalid Taskid")
+        return Response("Not allowed to access TaskSetID "+str(Taskid), status=403, mimetype="application/json")
 
     # Trying to reshedule the job
     try:
@@ -483,12 +535,13 @@ def modify():
         )
 
         print("Taskid ", Taskid, " rescheduled")
-        return jsonify(True)
+        return Response("Rescheduled Taskid: "+str(Taskid), status=200, mimetype="application/json")
     except Exception as err:
         # Was not able to reschedule
         print("Not able to  reschedule")
         print("Error: ", err)
-        return jsonify(False)
+        setStatusInDB(Taskid, "Failed")
+        return Response("Internal Error "+str(Taskid), status=500, mimetype="application/json")
 
 
 # Function to retrieve all scheduler task
@@ -496,24 +549,30 @@ def modify():
 def retrieveAll():
 
     auth, res = check_auth(request.headers)
-    if(auth==False):
+    if(auth == False):
         return res
 
     username = request.headers["username"]
 
-    retrieveQuery = "SELECT id,url,run_time,status FROM " + tableName
+    retrieveQuery = "SELECT * FROM " + tableName + \
+        " WHERE username = '{usernameValue}'".format(usernameValue=username)
     cur.execute(retrieveQuery)
     fetchedTasks = cur.fetchall()
+    print("FETCHED\n", fetchedTasks[0])
     # # Iterate and append all task objects with id, url, delay which have status=status to tasks list
 
     tasks = []
 
     for task in fetchedTasks:
         tasks.append({
-            "Taskid": task[0],
-            "TaskURL": task[1],
-            "Runtime": task[2],
-            "Status": task[3]
+            "Taskid": task[5],
+            "TaskURL": task[0],
+            "Runtime": task[1],
+            "Status": task[2],
+            "TimeToExecute": round(task[6]),
+            "ScheduleType": task[8],
+            "LambdaName": task[3],
+            "LambdaDescription": task[4]
         })
 
     return jsonify(tasks)
@@ -524,13 +583,17 @@ def retrieveAll():
 def retrieveWithStatus(status):
 
     auth, res = check_auth(request.headers)
-    if(auth==False):
+    if(auth == False):
         return res
+
+    if(status not in ["Completed", "Cancelled", "Failed", "Running"]):
+        return Response("Invalid Status: "+status, status=404, mimetype="application/json")
 
     username = request.headers["username"]
 
-    retrieveQuery = "SELECT id,url,run_time FROM " + tableName + \
-        " WHERE status='{fetchStatus}';".format(fetchStatus=status)
+    retrieveQuery = "SELECT * FROM " + tableName + \
+        " WHERE status='{fetchStatus}' AND username='{usernameValue}';".format(
+            fetchStatus=status, usernameValue=username)
     cur.execute(retrieveQuery)
     fetchedTasks = cur.fetchall()
     # # Iterate and append all task objects with id, url, delay which have status=status to tasks list
@@ -539,12 +602,17 @@ def retrieveWithStatus(status):
 
     for task in fetchedTasks:
         tasks.append({
-            "Taskid": task[0],
-            "TaskURL": task[1],
-            "Runtime": task[2]
+            "Taskid": task[5],
+            "TaskURL": task[0],
+            "Runtime": task[1],
+            "TimeToExecute": round(task[6]),
+            "ScheduleType": task[8],
+            "LambdaName": task[3],
+            "LambdaDescription": task[4]
         })
 
     return jsonify(tasks)
+
 
 """
 
@@ -552,21 +620,25 @@ def retrieveWithStatus(status):
 
 """
 
-# Orchestrator Callback Function 
-def orchestratorCaller(taskset_id, num, total, type, url, conditionCheckUrl="", conditionCheckDelay=0, conditionCheckRetries=0, delayBetweenRetries=0, fallbackUrl=""):
-    
-    if type=="task":
+# Orchestrator Callback Function
 
-        if(num==1):
-            inp={"table":taskSetTable, "columns":["status"],"data":["Running"],"where":"id="+str(taskset_id),"type":"update"}
-            send=requests.post(backend_url+'/api/v1/db/write',json=inp)
+
+def orchestratorCaller(taskset_id, num, total, type, url, conditionCheckUrl="", conditionCheckDelay=0, conditionCheckRetries=0, delayBetweenRetries=0, fallbackUrl=""):
+
+    if type == "task":
+
+        if(num == 1):
+            inp = {"table": taskSetTable, "columns": ["status"], "data": [
+                "Running"], "where": "id="+str(taskset_id), "type": "update"}
+            send = requests.post(backend_url+'/api/v1/db/write', json=inp)
             send.json()
 
-            inp={"table":orchestratorTasksTable,"columns":["url","condition_check_url","condition_check_delay","condition_check_retries","delay_between_retries","fallback_url"],"where":"id="+str(taskset_id)+" AND num="+"1"}
-            send=requests.post(backend_url+'/api/v1/db/read',json=inp)
-            res=eval(send.content)
+            inp = {"table": orchestratorTasksTable, "columns": ["url", "condition_check_url", "condition_check_delay",
+                                                                "condition_check_retries", "delay_between_retries", "fallback_url"], "where": "id="+str(taskset_id)+" AND num="+"1"}
+            send = requests.post(backend_url+'/api/v1/db/read', json=inp)
+            res = eval(send.content)
 
-            if(len(res)>0):
+            if(len(res) > 0):
                 url = res[0][0]
                 conditionCheckUrl = res[0][1]
                 conditionCheckDelay = res[0][2]
@@ -585,23 +657,22 @@ def orchestratorCaller(taskset_id, num, total, type, url, conditionCheckUrl="", 
             res = send.content
         print(send.status_code, res)
         if(send.status_code != 200 or isinstance(res, dict) and 'errorMessage' in res):
-            print("Taskset {0} num {1} failed".format(taskset_id,num))
-        
+            print("Taskset {0} num {1} failed".format(taskset_id, num))
+
         now = datetime.now(utc)
         scheduler.add_job(
             orchestratorCaller,
             trigger='date',
             jobstore='default',
             args=[taskset_id, num, total, "condition", "", conditionCheckUrl,
-            conditionCheckDelay, conditionCheckRetries,
-            delayBetweenRetries, fallbackUrl],
+                  conditionCheckDelay, conditionCheckRetries,
+                  delayBetweenRetries, fallbackUrl],
             id=str(taskset_id)+";"+str(num)+";"+str(conditionCheckRetries),
             max_instances=1,
             run_date=now + timedelta(milliseconds=conditionCheckDelay)
         )
-        
 
-    elif type=="condition":
+    elif type == "condition":
 
         send = requests.get(conditionCheckUrl)
         try:
@@ -611,41 +682,47 @@ def orchestratorCaller(taskset_id, num, total, type, url, conditionCheckUrl="", 
             res = send.content
         print(send.status_code, res)
         if(send.status_code != 200 or isinstance(res, dict) and 'errorMessage' in res):
-            print("Condition Check failed {0} num {1} failed".format(taskset_id,num))
-                
+            print("Condition Check failed {0} num {1} failed".format(
+                taskset_id, num))
+
             if conditionCheckRetries is not None and conditionCheckRetries > 0:
-                print("RETRYING", taskset_id, num, " RETRY LEFT: ", conditionCheckRetries)
+                print("RETRYING", taskset_id, num,
+                      " RETRY LEFT: ", conditionCheckRetries)
                 now = datetime.now(utc)
                 scheduler.add_job(
                     orchestratorCaller,
                     trigger='date',
                     jobstore='default',
                     args=[taskset_id, num, total, "condition", url, conditionCheckUrl,
-                    conditionCheckDelay, conditionCheckRetries-1,
-                    delayBetweenRetries, fallbackUrl],
-                    id=str(taskset_id)+";"+str(num)+";"+str(conditionCheckRetries),
+                          conditionCheckDelay, conditionCheckRetries-1,
+                          delayBetweenRetries, fallbackUrl],
+                    id=str(taskset_id)+";"+str(num) +
+                    ";"+str(conditionCheckRetries),
                     max_instances=1,
                     run_date=now + timedelta(milliseconds=delayBetweenRetries)
                 )
 
             else:
-                print("Retries ended", taskset_id, num, " RETRY LEFT: ", conditionCheckRetries )
+                print("Retries ended", taskset_id, num,
+                      " RETRY LEFT: ", conditionCheckRetries)
                 # call fallback
-                orchestratorCaller(taskset_id,num,total,"fallback",url,conditionCheckUrl,
-                    conditionCheckDelay, conditionCheckRetries,                   delayBetweenRetries, fallbackUrl)
+                orchestratorCaller(taskset_id, num, total, "fallback", url, conditionCheckUrl,
+                                   conditionCheckDelay, conditionCheckRetries,                   delayBetweenRetries, fallbackUrl)
 
         else:
-            if(num==total):
-                inp={"table":taskSetTable, "columns":["status"],"data":["Completed"],"where":"id="+str(taskset_id),"type":"update"}
-                send=requests.post(backend_url+'/api/v1/db/write',json=inp)
+            if(num == total):
+                inp = {"table": taskSetTable, "columns": ["status"], "data": [
+                    "Completed"], "where": "id="+str(taskset_id), "type": "update"}
+                send = requests.post(backend_url+'/api/v1/db/write', json=inp)
                 send.json()
             else:
                 # call next
-                inp={"table":orchestratorTasksTable,"columns":["url","condition_check_url","condition_check_delay","condition_check_retries","delay_between_retries","fallback_url"],"where":"id="+str(taskset_id)+" AND num="+str(num+1)}
-                send=requests.post(backend_url+'/api/v1/db/read',json=inp)
-                res=eval(send.content)
+                inp = {"table": orchestratorTasksTable, "columns": ["url", "condition_check_url", "condition_check_delay",
+                                                                    "condition_check_retries", "delay_between_retries", "fallback_url"], "where": "id="+str(taskset_id)+" AND num="+str(num+1)}
+                send = requests.post(backend_url+'/api/v1/db/read', json=inp)
+                res = eval(send.content)
 
-                if(len(res)>0):
+                if(len(res) > 0):
                     url = res[0][0]
                     conditionCheckUrl = res[0][1]
                     conditionCheckDelay = res[0][2]
@@ -656,12 +733,11 @@ def orchestratorCaller(taskset_id, num, total, type, url, conditionCheckUrl="", 
                     print("ERROR: No entry for {} task in db".format(num+1))
                     return
 
-                orchestratorCaller(taskset_id,num+1,total,"task",url,conditionCheckUrl,
-                    conditionCheckDelay, conditionCheckRetries,                   delayBetweenRetries, fallbackUrl)
+                orchestratorCaller(taskset_id, num+1, total, "task", url, conditionCheckUrl,
+                                   conditionCheckDelay, conditionCheckRetries,                   delayBetweenRetries, fallbackUrl)
 
-
-    else: # for fallback
-        print("Fallback called {0} num {1}".format(taskset_id,num))
+    else:  # for fallback
+        print("Fallback called {0} num {1}".format(taskset_id, num))
         send = requests.get(fallbackUrl)
         try:
             res = eval(send.content)
@@ -670,10 +746,11 @@ def orchestratorCaller(taskset_id, num, total, type, url, conditionCheckUrl="", 
             res = send.content
         print(send.status_code, res)
         if(send.status_code != 200 or isinstance(res, dict) and 'errorMessage' in res):
-            print("Fallback failed {0} num {1} failed".format(taskset_id,num))
+            print("Fallback failed {0} num {1} failed".format(taskset_id, num))
 
-        inp={"table":taskSetTable, "columns":["status"],"data":["Failed"],"where":"id="+str(taskset_id),"type":"update"}
-        send=requests.post(backend_url+'/api/v1/db/write',json=inp)
+        inp = {"table": taskSetTable, "columns": ["status"], "data": [
+            "Failed"], "where": "id="+str(taskset_id), "type": "update"}
+        send = requests.post(backend_url+'/api/v1/db/write', json=inp)
         send.json()
 
 
@@ -682,7 +759,7 @@ def orchestratorCaller(taskset_id, num, total, type, url, conditionCheckUrl="", 
 def orchestrate():
 
     auth, res = check_auth(request.headers)
-    if(auth==False):
+    if(auth == False):
         return res
 
     username = request.headers["username"]
@@ -697,10 +774,13 @@ def orchestrate():
     initialDelay = json["initialDelay"]
     tasks = json["tasks"]
 
-    if(len(tasks)<2):
+    if(len(tasks) < 2):
         return Response("Please provide atleast 2 tasks", status=400, mimetype="application/json")
 
-    idQuery = "INSERT INTO " + taskSetTable + " (status,username, initial_delay)" + " VALUES('Scheduled','{0}',{1})".format(username,initialDelay) + " RETURNING id;"
+    idQuery = "INSERT INTO " + taskSetTable + \
+        " (status,username, initial_delay)" + \
+        " VALUES('Scheduled','{0}',{1})".format(
+            username, initialDelay) + " RETURNING id;"
     cur.execute(idQuery)
     id = cur.fetchone()[0]
     conn.commit()
@@ -709,47 +789,48 @@ def orchestrate():
     for task in tasks:
         num += 1
         correct, res = check(task, ["taskURL", "conditionCheckTaskURL",
-            "timeDelayForConditionCheck", "conditionCheckRetries",
-            "timeDelayBetweenRetries", "fallbackTaskURL"])
+                                    "timeDelayForConditionCheck", "conditionCheckRetries",
+                                    "timeDelayBetweenRetries", "fallbackTaskURL"])
 
         if(correct == False):
             return res
 
-        inp={"table":orchestratorTasksTable,"columns":["id","num","url","condition_check_url","condition_check_delay","condition_check_retries","delay_between_retries","fallback_url"],"data":[str(id), str(num), task["taskURL"], task["conditionCheckTaskURL"],
-            str(task["timeDelayForConditionCheck"]), str(task["conditionCheckRetries"]),
-            str(task["timeDelayBetweenRetries"]), task["fallbackTaskURL"]],"type":"insert"}
-        send=requests.post(backend_url+'/api/v1/db/write',json=inp)
+        inp = {"table": orchestratorTasksTable, "columns": ["id", "num", "url", "condition_check_url", "condition_check_delay", "condition_check_retries", "delay_between_retries", "fallback_url"], "data": [str(id), str(num), task["taskURL"], task["conditionCheckTaskURL"],
+                                                                                                                                                                                                              str(task["timeDelayForConditionCheck"]), str(
+                                                                                                                                                                                                                  task["conditionCheckRetries"]),
+                                                                                                                                                                                                              str(task["timeDelayBetweenRetries"]), task["fallbackTaskURL"]], "type": "insert"}
+        send = requests.post(backend_url+'/api/v1/db/write', json=inp)
         send.json()
-        
 
     now = datetime.now(utc)
 
     task = tasks[0]
 
     scheduler.add_job(
-            orchestratorCaller,
-            trigger='date',
-            jobstore='default',
-            args=[id, 1, num, "task", task["taskURL"], task["conditionCheckTaskURL"],
-            task["timeDelayForConditionCheck"], task["conditionCheckRetries"],
-            task["timeDelayBetweenRetries"], task["fallbackTaskURL"]],
-            id=str(id)+";"+"1",
-            max_instances=1,
-            run_date=now + timedelta(milliseconds=initialDelay)
-        )
+        orchestratorCaller,
+        trigger='date',
+        jobstore='default',
+        args=[id, 1, num, "task", task["taskURL"], task["conditionCheckTaskURL"],
+              task["timeDelayForConditionCheck"], task["conditionCheckRetries"],
+                task["timeDelayBetweenRetries"], task["fallbackTaskURL"]],
+        id=str(id)+";"+"1",
+        max_instances=1,
+        run_date=now + timedelta(milliseconds=initialDelay)
+    )
 
     return jsonify({"id": id})
 
 
 # Function to check authenticate user to access particular taskset
-def check_task_auth(id,username):
-    inp={"table":"task_set","columns":["id","username","status"],"where":"id="+str(id)+" AND username='"+username+"'"}
-    send=requests.post(backend_url+'/api/v1/db/read',json=inp)
-    res=eval(send.content)
+def check_task_auth(id, username):
+    inp = {"table": "task_set", "columns": [
+        "id", "username", "status"], "where": "id="+str(id)+" AND username='"+username+"'"}
+    send = requests.post(backend_url+'/api/v1/db/read', json=inp)
+    res = eval(send.content)
 
-    if(len(res)>0 and res[0][2]=="Scheduled"):
+    if(len(res) > 0 and res[0][2] == "Scheduled"):
         return True, Response("Allowed", status=200, mimetype="application/json")
-    elif(len(res)==0):
+    elif(len(res) == 0):
         return False, Response("Not allowed to access TaskSetID "+str(id), status=403, mimetype="application/json")
     else:
         return False, Response("Orchestration has already started for TaskSetID "+str(id), status=400, mimetype="application/json")
@@ -760,7 +841,7 @@ def check_task_auth(id,username):
 def modify_taskset():
 
     auth, res = check_auth(request.headers)
-    if(auth==False):
+    if(auth == False):
         return res
 
     username = request.headers["username"]
@@ -778,11 +859,11 @@ def modify_taskset():
     initialDelay = json['initialDelay']
     tasks = json['tasks']
 
-    auth, res = check_task_auth(id,username)
-    if(auth==False):
+    auth, res = check_task_auth(id, username)
+    if(auth == False):
         return res
 
-    if(len(tasks)<2):
+    if(len(tasks) < 2):
         return Response("Please provide atleast 2 tasks", status=400, mimetype="application/json")
 
     Taskid = str(id)+";"+"1"
@@ -814,47 +895,52 @@ def modify_taskset():
         print("Error: ", err)
         return jsonify(False)
 
-    inp={"table":orchestratorTasksTable, "columns":[],"data":[],"where":"id="+str(id),"type":"delete"}
-    send=requests.post(backend_url+'/api/v1/db/write',json=inp)
+    inp = {"table": orchestratorTasksTable, "columns": [],
+           "data": [], "where": "id="+str(id), "type": "delete"}
+    send = requests.post(backend_url+'/api/v1/db/write', json=inp)
     send.json()
 
     num = 0
     for task in tasks:
         num += 1
         correct, res = check(task, ["taskURL", "conditionCheckTaskURL",
-            "timeDelayForConditionCheck", "conditionCheckRetries",
-            "timeDelayBetweenRetries", "fallbackTaskURL"])
+                                    "timeDelayForConditionCheck", "conditionCheckRetries",
+                                    "timeDelayBetweenRetries", "fallbackTaskURL"])
 
         if(correct == False):
             return res
 
-        inp={"table":orchestratorTasksTable,"columns":["id","num","url","condition_check_url","condition_check_delay","condition_check_retries","delay_between_retries","fallback_url"],"data":[str(id), str(num), task["taskURL"], task["conditionCheckTaskURL"],
-            str(task["timeDelayForConditionCheck"]), str(task["conditionCheckRetries"]),
-            str(task["timeDelayBetweenRetries"]), task["fallbackTaskURL"]],"type":"insert"}
-        send=requests.post(backend_url+'/api/v1/db/write',json=inp)
+        inp = {"table": orchestratorTasksTable, "columns": ["id", "num", "url", "condition_check_url", "condition_check_delay", "condition_check_retries", "delay_between_retries", "fallback_url"], "data": [str(id), str(num), task["taskURL"], task["conditionCheckTaskURL"],
+                                                                                                                                                                                                              str(task["timeDelayForConditionCheck"]), str(
+                                                                                                                                                                                                                  task["conditionCheckRetries"]),
+                                                                                                                                                                                                              str(task["timeDelayBetweenRetries"]), task["fallbackTaskURL"]], "type": "insert"}
+        send = requests.post(backend_url+'/api/v1/db/write', json=inp)
         send.json()
 
-    inp={"table":taskSetTable, "columns":["initial_delay"],"data":[str(initialDelay)],"where":"id="+str(id),"type":"update"}
-    send=requests.post(backend_url+'/api/v1/db/write',json=inp)
+    inp = {"table": taskSetTable, "columns": ["initial_delay"], "data": [
+        str(initialDelay)], "where": "id="+str(id), "type": "update"}
+    send = requests.post(backend_url+'/api/v1/db/write', json=inp)
     send.json()
 
     print("Taskid ", Taskid, " rescheduled")
     return jsonify(True)
 
 # Function to cancel taskset
+
+
 @ app.route('/taskset/<id>', methods=["DELETE"])
 def cancel_taskset(id):
 
     auth, res = check_auth(request.headers)
-    if(auth==False):
+    if(auth == False):
         return res
 
     username = request.headers["username"]
 
     id = int(id)
 
-    auth, res = check_task_auth(id,username)
-    if(auth==False):
+    auth, res = check_task_auth(id, username)
+    if(auth == False):
         return res
 
     Taskid = str(id)+";"+"1"
@@ -876,8 +962,9 @@ def cancel_taskset(id):
         print("TaskID ", Taskid, " doesn't exist")
         return jsonify(False)
 
-    inp={"table":taskSetTable, "columns":["status"],"data":["Cancelled"],"where":"id="+str(id),"type":"update"}
-    send=requests.post(backend_url+'/api/v1/db/write',json=inp)
+    inp = {"table": taskSetTable, "columns": ["status"], "data": [
+        "Cancelled"], "where": "id="+str(id), "type": "update"}
+    send = requests.post(backend_url+'/api/v1/db/write', json=inp)
     send.json()
     print("Cancelled task with id:{0}".format(id))
     return jsonify(True)
@@ -888,14 +975,15 @@ def cancel_taskset(id):
 def retrieveAll_taskset():
 
     auth, res = check_auth(request.headers)
-    if(auth==False):
+    if(auth == False):
         return res
 
     username = request.headers["username"]
 
-    inp={"table":taskSetTable,"columns":["id","status","initial_delay"],"where":"username='"+username+"'"}
-    send=requests.post(backend_url+'/api/v1/db/read',json=inp)
-    res=eval(send.content)
+    inp = {"table": taskSetTable, "columns": [
+        "id", "status", "initial_delay"], "where": "username='"+username+"'"}
+    send = requests.post(backend_url+'/api/v1/db/read', json=inp)
+    res = eval(send.content)
 
     final = []
     for task_set in res:
@@ -904,20 +992,21 @@ def retrieveAll_taskset():
         ans["status"] = task_set[1]
         ans["initialDelay"] = task_set[2]
 
-        inp={"table":orchestratorTasksTable,"columns":["url","condition_check_url","condition_check_delay","condition_check_retries","delay_between_retries","fallback_url"],"where":"id="+str(ans["id"])}
-        send=requests.post(backend_url+'/api/v1/db/read',json=inp)
-        fetchedTasks=eval(send.content)
-        
+        inp = {"table": orchestratorTasksTable, "columns": ["url", "condition_check_url", "condition_check_delay",
+                                                            "condition_check_retries", "delay_between_retries", "fallback_url"], "where": "id="+str(ans["id"])}
+        send = requests.post(backend_url+'/api/v1/db/read', json=inp)
+        fetchedTasks = eval(send.content)
+
         tasks = []
-    
+
         for task in fetchedTasks:
             tasks.append({
-                "taskURL":task[0],
-                "conditionCheckTaskURL":task[1],
-                "timeDelayForConditionCheck":task[2],
-                "conditionCheckRetries":task[3],
-                "timeDelayBetweenRetries":task[4],
-                "fallbackTaskURL":task[5]
+                "taskURL": task[0],
+                "conditionCheckTaskURL": task[1],
+                "timeDelayForConditionCheck": task[2],
+                "conditionCheckRetries": task[3],
+                "timeDelayBetweenRetries": task[4],
+                "fallbackTaskURL": task[5]
             })
 
         ans["tasks"] = tasks
@@ -931,14 +1020,15 @@ def retrieveAll_taskset():
 def retrieveWithStatus_taskset(status):
 
     auth, res = check_auth(request.headers)
-    if(auth==False):
+    if(auth == False):
         return res
 
     username = request.headers["username"]
 
-    inp={"table":taskSetTable,"columns":["id","initial_delay"],"where":"username='"+username+"' AND status='"+status+"'"}
-    send=requests.post(backend_url+'/api/v1/db/read',json=inp)
-    res=eval(send.content)
+    inp = {"table": taskSetTable, "columns": [
+        "id", "initial_delay"], "where": "username='"+username+"' AND status='"+status+"'"}
+    send = requests.post(backend_url+'/api/v1/db/read', json=inp)
+    res = eval(send.content)
 
     final = []
     for task_set in res:
@@ -946,20 +1036,21 @@ def retrieveWithStatus_taskset(status):
         ans["id"] = task_set[0]
         ans["initialDelay"] = task_set[1]
 
-        inp={"table":orchestratorTasksTable,"columns":["url","condition_check_url","condition_check_delay","condition_check_retries","delay_between_retries","fallback_url"],"where":"id="+str(ans["id"])}
-        send=requests.post(backend_url+'/api/v1/db/read',json=inp)
-        fetchedTasks=eval(send.content)
-        
+        inp = {"table": orchestratorTasksTable, "columns": ["url", "condition_check_url", "condition_check_delay",
+                                                            "condition_check_retries", "delay_between_retries", "fallback_url"], "where": "id="+str(ans["id"])}
+        send = requests.post(backend_url+'/api/v1/db/read', json=inp)
+        fetchedTasks = eval(send.content)
+
         tasks = []
-    
+
         for task in fetchedTasks:
             tasks.append({
-                "taskURL":task[0],
-                "conditionCheckTaskURL":task[1],
-                "timeDelayForConditionCheck":task[2],
-                "conditionCheckRetries":task[3],
-                "timeDelayBetweenRetries":task[4],
-                "fallbackTaskURL":task[5]
+                "taskURL": task[0],
+                "conditionCheckTaskURL": task[1],
+                "timeDelayForConditionCheck": task[2],
+                "conditionCheckRetries": task[3],
+                "timeDelayBetweenRetries": task[4],
+                "fallbackTaskURL": task[5]
             })
 
         ans["tasks"] = tasks
@@ -967,66 +1058,73 @@ def retrieveWithStatus_taskset(status):
 
     return jsonify(final)
 
+
 """
 
 ------------------- Orchestrator DB Functions---------------
 
 """
 
-# Endpoint to make changes to db - insert, update, delete 
-@app.route('/api/v1/db/write',methods=["POST"])
+# Endpoint to make changes to db - insert, update, delete
+
+
+@app.route('/api/v1/db/write', methods=["POST"])
 def write_db():
 
     json = request.get_json()
     # db = pymysql.connect(host="db_xmeme", user="root", password="123", db="xmeme", port=3306)
     # cur = db.cursor()
 
-    if(json["type"]=="insert"):
+    if(json["type"] == "insert"):
 
         columns = json["columns"][0]
         data = "'"+json["data"][0]+"'"
 
-        for iter in range(1,len(json["columns"])):
+        for iter in range(1, len(json["columns"])):
             columns = columns + "," + json["columns"][iter]
             data = data + ",'" + json["data"][iter]+"'"
 
         sql = "INSERT INTO "+json["table"]+"("+columns+") VALUES ("+data+")"
 
-    elif(json["type"]=="delete"):
+    elif(json["type"] == "delete"):
 
-        if json["where"]!="":
+        if json["where"] != "":
             sql = "DELETE FROM "+json["table"]+" WHERE "+json["where"]
         else:
             sql = "DELETE FROM "+json["table"]
 
-    elif(json["type"]=="update"):
+    elif(json["type"] == "update"):
 
         string = json["columns"][0] + "='" + json["data"][0] + "'"
 
-        for iter in range(1,len(json["columns"])):
-            string = string + ", " + json["columns"][iter] + "='" + json["data"][iter] + "'"
+        for iter in range(1, len(json["columns"])):
+            string = string + ", " + \
+                json["columns"][iter] + "='" + json["data"][iter] + "'"
 
-        sql = "UPDATE "+json["table"]+" SET "+ string + " WHERE " + json["where"] 
+        sql = "UPDATE "+json["table"]+" SET " + \
+            string + " WHERE " + json["where"]
 
     cur.execute(sql)
     conn.commit()
     # cur.close()
 
-    return Response("1",status=200,mimetype="application/text")
+    return Response("1", status=200, mimetype="application/text")
 
 # Endpoint to read data from the db
-@app.route('/api/v1/db/read',methods=["POST"])
+
+
+@app.route('/api/v1/db/read', methods=["POST"])
 def read_db():
 
     json = request.get_json()
     # db = pymysql.connect(host="db_xmeme", user="root", password="123", db="xmeme", port=3306)
     # cur = db.cursor()
-    
+
     columns = json["columns"][0]
-    for iter in range(1,len(json["columns"])):
+    for iter in range(1, len(json["columns"])):
         columns = columns + "," + json["columns"][iter]
 
-    if json["where"]!="":
+    if json["where"] != "":
         sql = "SELECT "+columns+" FROM "+json["table"]+" WHERE "+json["where"]
     else:
         sql = "SELECT "+columns+" FROM "+json["table"]
@@ -1036,10 +1134,11 @@ def read_db():
 
     cur.execute(sql)
     results = cur.fetchall()
-    results = list(map(list,results))
+    results = list(map(list, results))
     # cur.close()
 
-    return Response(str(results),status=200,mimetype="application/text")
+    return Response(str(results), status=200, mimetype="application/text")
+
 
 if __name__ == '__main__':
     app.debug = True
