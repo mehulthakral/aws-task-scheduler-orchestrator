@@ -35,10 +35,10 @@ def runProcess(exe, LambdaName):
 
         
     except pexpect.TIMEOUT:
-        print("TIMEOUT",child.before.decode('ascii'))
+        print("TIMEOUT",child.before)
         return False, "Timeout Occured"
     except Exception as e:
-        print(e,child.before.decode('ascii'))
+        print(e,child.before)
         return False, "Exception Occured"
     
     return False, "Lambda creation ended"
@@ -46,7 +46,7 @@ def runProcess(exe, LambdaName):
 
 def deploy(f, requirements, LambdaName, region="", access_key="", secret_access_key="", session_token=""):
 
-    stream = os.popen("mkdir {0} && cd {0} && npm init -f && npm install --save-dev serverless-wsgi serverless-python-requirements".format(LambdaName))
+    stream = os.popen("mkdir {0} && cp -r sample_dir/. {0}/ ".format(LambdaName))
     output = stream.read()
     print(output)
 
@@ -81,9 +81,9 @@ def deploy(f, requirements, LambdaName, region="", access_key="", secret_access_
 
     f = route+"\n"+f
 
-    stream = os.popen("cp app.py {0}/app.py && cp requirements.txt {0}/requirements.txt && cp serverless.yml {0}/serverless.yml".format(LambdaName))
-    output = stream.read()
-    print(output)
+    # stream = os.popen("cp app.py {0}/app.py && cp requirements.txt {0}/requirements.txt && cp serverless.yml {0}/serverless.yml".format(LambdaName))
+    # output = stream.read()
+    # print(output)
 
     obj=open("{0}/app.py".format(LambdaName),"a")
     obj.write("\n\n"+f)

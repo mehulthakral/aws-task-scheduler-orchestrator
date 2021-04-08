@@ -1141,5 +1141,5 @@ def read_db():
 
 
 if __name__ == '__main__':
-    app.debug = True
+    app.debug = False
     app.run()
