@@ -94,12 +94,16 @@ def deploy(f, requirements, LambdaName, region="", access_key="", secret_access_
     obj.write("\n"+reqs)
     obj.close()
 
-    obj=open("/home/mehul/.aws/credentials","w")
-    obj.write("[default]\nregion={0}\naws_access_key_id={1}\naws_secret_access_key={2}\naws_session_token={3}".format(region,access_key,secret_access_key,session_token))
-    obj.close()
+    # obj=open("/home/mehul/.aws/credentials","w")
+    # obj.write("[default]\nregion={0}\naws_access_key_id={1}\naws_secret_access_key={2}\naws_session_token={3}".format(region,access_key,secret_access_key,session_token))
+    # obj.close()
 
-    
-    correct, res = runProcess("serverless deploy --aws-profile default",LambdaName)
+    os.environ['AWS_ACCESS_KEY_ID'] = access_key
+    os.environ['AWS_SECRET_ACCESS_KEY'] = secret_access_key
+    os.environ['AWS_SESSION_TOKEN'] = session_token    
+
+    # correct, res = runProcess("serverless deploy --aws-profile default",LambdaName)
+    correct, res = runProcess("serverless deploy",LambdaName)
     return correct, res
 
 # LambdaName = "my-app"
