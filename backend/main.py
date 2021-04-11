@@ -307,7 +307,7 @@ def schedule():
         retries = 0
         timeBetweenRetries = 0
 
-    LambdaName = str(json['LambdaName']) if "LambdaName" in json else ''.join(
+    LambdaName = str(json['LambdaName']) if "LambdaName" in json and len(json["LambdaName"]) > 0 else ''.join(
         random.choices(string.ascii_uppercase + string.digits, k=7))
     LambdaDescription = str(
         json['LambdaDescription']) if "LambdaDescription" in json else ''
@@ -331,7 +331,6 @@ def schedule():
         obj = open("temp.py", "w")
         #funcSrc = funcSrc.encode('unicode_escape').decode('utf-8')
         #funcSrc = "'" + funcSrc + "'"
-        funcSrc = funcSrc.replace("\\n", "\n").replace("\\t", "\t")
         print("WRITING: ", repr(funcSrc))
         obj.write(funcSrc)
         obj.close()
