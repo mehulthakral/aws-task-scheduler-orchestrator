@@ -26,7 +26,7 @@ logging.getLogger('apscheduler').setLevel(logging.DEBUG)
 backend_url = "http://127.0.0.1:5000"
 
 conn = psycopg2.connect(
-    dbname="jobs",
+    dbname="aws",
     user="postgres",
     password="postgres@123",
     host="localhost",

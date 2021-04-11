@@ -46,11 +46,14 @@ def runProcess(exe, LambdaName):
 
 def deploy(f, requirements, LambdaName, region="", access_key="", secret_access_key="", session_token=""):
 
+    print(LambdaName)
     stream = os.popen("mkdir {0} && cp -r sample_dir/. {0}/ ".format(LambdaName))
     output = stream.read()
     print(output)
 
+    print(f)
     obj=open("temp.py","w")
+    f = f.replace("\\n","\n").replace("\\t","\t")
     obj.write(f)
     obj.close()
     temp=__import__("temp")

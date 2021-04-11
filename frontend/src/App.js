@@ -591,12 +591,21 @@ async function ScheduleFunctionTask(
 
   if(SchedulingType === 'Based on Time Delay in miliseconds')
   {
+    FunctionSourceString = FunctionSourceString.replace(/\\n/g, "\\n")
+    .replace(/\\'/g, "\\'")
+    .replace(/\\"/g, '\\"')
+    .replace(/\\&/g, "\\&")
+    .replace(/\\r/g, "\\r")
+    .replace(/\\t/g, "\\t")
+    .replace(/\\b/g, "\\b")
+    .replace(/\\f/g, "\\f");
       await axios({
         method : 'post',
         url : 'http://localhost:5000/tasks',
         headers: {
         username: sessionStorage.getItem('username'),
-        password: sessionStorage.getItem('password')
+        password: sessionStorage.getItem('password'),
+        'Content-Type': 'application/json'
         },
         data : {
         "LambdaName" : LambdaName,
@@ -611,7 +620,7 @@ async function ScheduleFunctionTask(
         "retries" : Retries,
         "timeBetweenRetries" : RetryGap,
         "schedulingOption" : "1",
-        "dateTimeValue" : DelayValue,
+        "timeInMS" : DelayValue,
         "taskType" : "function"
         }
       }).then((response) => toast.info("Task scheduled with id: " + response.data.id, {
@@ -639,7 +648,7 @@ async function ScheduleFunctionTask(
         "retries" : Retries,
         "timeBetweenRetries" : RetryGap,
         "schedulingOption" : "2",
-        "timeInMS" : DelayValue,
+        "dateTimeValue" : DelayValue,
         "taskType" : "function"
         }
       }).then((response) => toast.info("Task scheduled with id: " + response.data.id, {
