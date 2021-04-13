@@ -5,7 +5,7 @@ import pexpect
 import re
 import sys
 
-def runProcess(exe, LambdaName):    
+def runProcess(exe, option, LambdaName):    
     print("Started runProcess")
     try:
         child = pexpect.spawn(exe,cwd=LambdaName,timeout=300,logfile=sys.stdout,encoding='utf-8')
@@ -26,12 +26,20 @@ def runProcess(exe, LambdaName):
 
         error = "Serverless Error ----------------------------------------"
         success = 'endpoints:'
-        if(error in l):
-            return False,l[l.index(error)+1]
-        elif(success in l):
-            return True, l[l.index(success)+1].split()[2]
+        if(option=="d"):
+            # print("in deploy")
+            if(error in l):
+                return False,l[l.index(error)+1]
+            elif(success in l):
+                # print("in success", l[l.index(success)+1])
+                return True, l[l.index(success)+1].split()[2]
+            else:
+                return False, "Unknown Error"
         else:
-            return False, "Unknown Error"
+            # print("in package")
+            if(error in l):
+                return False,l[l.index(error)+1]
+            return True, ""
 
         
     except pexpect.TIMEOUT:
@@ -105,8 +113,19 @@ def deploy(f, requirements, LambdaName, region="", access_key="", secret_access_
     os.environ['AWS_SECRET_ACCESS_KEY'] = secret_access_key
     os.environ['AWS_SESSION_TOKEN'] = session_token    
 
+    correct, res = runProcess("serverless package --package my-package","p",LambdaName)
+    if(correct==False):
+        return res
+
+    stream = os.popen("chmod 777 -R {0}".format(LambdaName))
+    output = stream.read()
+    print(output)
+
     # correct, res = runProcess("serverless deploy --aws-profile default",LambdaName)
-    correct, res = runProcess("serverless deploy",LambdaName)
+    correct, res = runProcess("serverless deploy --package my-package","d",LambdaName)
+    stream = os.popen("rm -rf {0}".format(LambdaName))
+    output = stream.read()
+    print(output)
     return correct, res
 
 # LambdaName = "my-app"
