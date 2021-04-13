@@ -93,12 +93,14 @@ def scheduleInDb(TaskURL, RunTime, LambdaName, LambdaDescription, Username, Sche
     print("Task scheduled with id : ", Taskid)
     return Taskid
 
+
 def updateInDb(Taskid, TaskURL, RunTime, status):
     statusQuery = "UPDATE " + tableName + \
         " SET status = '{3}', url='{1}', run_time='{2}' WHERE id = {0}".format(
             Taskid, TaskURL, RunTime, status)
     cur.execute(statusQuery)
     conn.commit()
+
 
 """
     Following function updates the status of a task with given Taskid in database
@@ -239,7 +241,7 @@ def lambdaCaller(TaskURL, Taskid, retries, timeBetweenRetries):
         f = 1
         print(e)
 
-    if(f==0):
+    if(f == 0):
         try:
             res = eval(send.content)
         except Exception as e:
@@ -247,9 +249,9 @@ def lambdaCaller(TaskURL, Taskid, retries, timeBetweenRetries):
             res = send.content
         print(send.status_code, res)
 
-    if(f==1 or send.status_code != 200 or isinstance(res, dict) and 'errorMessage' in res):
+    if(f == 1 or send.status_code != 200 or isinstance(res, dict) and 'errorMessage' in res):
         print("Task failed")
-        setStatusInDB(Taskid, "Failed")
+
         if retries is not None and retries > 0:
             print("RETRYING TASKID: ", Taskid, " RETRY LEFT: ", retries)
             now = datetime.now(utc)
@@ -263,6 +265,8 @@ def lambdaCaller(TaskURL, Taskid, retries, timeBetweenRetries):
                 max_instances=1,
                 run_date=now + timeBetweenRetries
             )
+        else:
+            setStatusInDB(Taskid, "Failed")
 
     else:
         endTime = datetime.now()
@@ -273,9 +277,10 @@ def lambdaCaller(TaskURL, Taskid, retries, timeBetweenRetries):
         print("Completed lambda: ", Taskid, TaskURL)
         setStatusInDB(Taskid, "Completed")
 
+
 def functionDeploy(id, choosenOption, timeInMS, datetimeStr, retries, timeBetweenRetries, funcSrc, requirements, LambdaName, region, access_key, secret_access_key, session_token, args):
     success, res = create.deploy(
-            funcSrc, requirements, LambdaName, region, access_key, secret_access_key, session_token)
+        funcSrc, requirements, LambdaName, region, access_key, secret_access_key, session_token)
 
     if(success == False):
         setStatusInDB(id, "DeploymentFailed")
@@ -291,9 +296,10 @@ def functionDeploy(id, choosenOption, timeInMS, datetimeStr, retries, timeBetwee
     print(timeBetweenRetries)
 
     if choosenOption == '1':
-        
+
         now = datetime.now(utc)
-        updateInDb(id, TaskURL, now + timedelta(milliseconds=timeInMS),"Scheduled")
+        updateInDb(id, TaskURL, now +
+                   timedelta(milliseconds=timeInMS), "Scheduled")
 
         scheduler.add_job(
             lambdaCaller,
@@ -434,7 +440,8 @@ def schedule():
             functionDeploy,
             trigger='date',
             jobstore='default',
-            args=[str(id), choosenOption, timeInMS, datetimeStr, retries, timeBetweenRetries, funcSrc, requirements, LambdaName, region, access_key, secret_access_key, session_token, args],
+            args=[str(id), choosenOption, timeInMS, datetimeStr, retries, timeBetweenRetries, funcSrc,
+                  requirements, LambdaName, region, access_key, secret_access_key, session_token, args],
             id=str(id),
             max_instances=1,
             run_date=now + timedelta(milliseconds=1000)
@@ -457,7 +464,7 @@ def schedule():
     print(timeBetweenRetries)
 
     if choosenOption == '1':
-        
+
         now = datetime.now(utc)
         id = scheduleInDb(
             TaskURL, now + timedelta(milliseconds=timeInMS), LambdaName, LambdaDescription, username, taskType, retries, timeBetweenRetries)
@@ -481,7 +488,7 @@ def schedule():
         return jsonify({"id": id})
 
     elif choosenOption == '2':
-        
+
         print("Local time: ", datetimeStr)
         # Assuming the input will always from a Indian Timezone
         # Converting to utc
@@ -596,9 +603,9 @@ def checkStatus(Taskid):
             "Retries": task[9],
             "TimeBetweenRetries": task[10]
         }
-        if(task[8]=="function"):
+        if(task[8] == "function"):
             retrieveQuery = "SELECT * FROM " + functionTableName + \
-        " WHERE id = '{id}'".format(id=task[5])
+                " WHERE id = '{id}'".format(id=task[5])
             cur.execute(retrieveQuery)
             fetchedTasks = cur.fetchall()
             data["funcSrc"] = fetchedTasks[0][1]
@@ -700,9 +707,9 @@ def retrieveAll():
             "Retries": task[9],
             "TimeBetweenRetries": task[10]
         }
-        if(task[8]=="function"):
+        if(task[8] == "function"):
             retrieveQuery = "SELECT * FROM " + functionTableName + \
-        " WHERE id = '{id}'".format(id=task[5])
+                " WHERE id = '{id}'".format(id=task[5])
             cur.execute(retrieveQuery)
             fetchedTasks = cur.fetchall()
             data["funcSrc"] = fetchedTasks[0][1]
@@ -746,9 +753,9 @@ def retrieveWithStatus(status):
             "Retries": task[9],
             "TimeBetweenRetries": task[10]
         }
-        if(task[8]=="function"):
+        if(task[8] == "function"):
             retrieveQuery = "SELECT * FROM " + functionTableName + \
-        " WHERE id = '{id}'".format(id=task[5])
+                " WHERE id = '{id}'".format(id=task[5])
             cur.execute(retrieveQuery)
             fetchedTasks = cur.fetchall()
             data["funcSrc"] = fetchedTasks[0][1]

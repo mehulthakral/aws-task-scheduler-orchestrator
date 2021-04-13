@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import {Box,Button,Card,Clock as Timer,CardBody,DropButton,Grommet,Nav,RoutedAnchor,Sidebar,Select,Text,TextInput,Spinner,Tip } from 'grommet';
-import {Add,Action,Archive,CircleInformation,Clock,Compliance,Domain,Edit,History,Home as HomeIcon,Install,Key,Lock,Link as URL,MapLocation,Notes,Revert,Run,SchedulePlay,Search,Task,Tasks,TextAlignFull,Trash,Logout,UserAdmin,Waypoint} from 'grommet-icons';
+import React from 'react';
+import {Box,Button,Card,Clock as Timer,CardBody,DropButton,Grommet,Nav,Sidebar,Select,TextInput,Spinner,Tip } from 'grommet';
+import {Add,Action,CircleInformation,Clock,Compliance,Domain,Edit,History,Home as HomeIcon,Install,Key,Lock,Link as URL,MapLocation,Notes,Revert,Run,SchedulePlay,Task,Tasks,TextAlignFull,Trash,Logout,UserAdmin,Waypoint} from 'grommet-icons';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Modal from 'react-modal';
+import homePicture from './sh_icon_scheduler.svg'
 
 
 import * as Yup from "yup";
@@ -36,6 +37,7 @@ const customStyles = {
   }
 };
 
+
 const theme = {
   global: {
     font: {
@@ -45,6 +47,8 @@ const theme = {
     }
   },
 };
+
+
 
 function LogoutUser()
 {
@@ -88,9 +92,6 @@ function Navbar()
     </Sidebar>
     </div>
     <Switch>
-          <Route path="/home">
-            <Home /> 
-          </Route>
           <Route path="/addTask">
             <AddTask />
           </Route>
@@ -105,6 +106,9 @@ function Navbar()
           </Route>
           <Route path="/about">
             <About />  
+          </Route>
+          <Route path="*">
+            <Home /> 
           </Route>
         </Switch>
 
@@ -196,51 +200,60 @@ function Home()
  }
 
   return (
-    <Box 
-    alignSelf="center" 
-    alignContent="center"
-    justify = "center"
-    align="center"
-    direction="column"
-    width="50vw"
-    height="100vh"
-    elevation="large"
-    margin={{"left" : "large"}}
-    pad={{"left" : "large"}}
-    gap="small"
-    border="all"
-    >
-  <Box direction="column" align="center" >
-  <h1>Sign In/Sign up</h1>
-  <h2>AWS T4</h2>
-  </Box>
-      <Box width="30vw" gap="small" >
-      <TextInput
-        placeholder="Enter username"
-        value={username}
-        onChange={event => setUsername(event.target.value)}
+    <Box direction="row" width="100vw">
+        <Box 
         alignSelf="center" 
         alignContent="center"
-        justify = "center"
+        justify = "start"
         align="center"
+        direction="column"
         width="50vw"
-        background="white"
-      />
-      <TextInput
-        placeholder="Enter password"
-        value={password}
-        onChange={event => setPassword(event.target.value)}
-        type="password"
-        width="50vw"
-        pad="large"
-        justify="center"
-        background="white"
-      />
-      </Box>
-      <Box direction="row" gap="small" margin="medium">
-      <Button primary label="SignIn" alignSelf="center" color="#232f3e" onClick={() => DoSignIn(username,password)}/>
-      <Button primary label="SignUp" alignSelf="center" color="#232f3e" onClick={() => DoSignUp(username,password)}/>
-      </Box>
+        height="100vh"
+        elevation="large"
+        margin={{"left" : "large"}}
+        pad={{"left" : "large"}}
+        gap="small"
+        background="#FFFF66"
+        >
+          <Box direction="column" align="center">
+          <h1>Sign In/Sign up</h1>
+          <h2>Task Orchestrator and Scheduler Library</h2>
+          <h3>AWS T4</h3>
+          </Box>
+              <Box width="30vw" gap="small" >
+              <h3>Enter Username :</h3>
+              <TextInput
+                placeholder="Enter username"
+                value={username}
+                onChange={event => setUsername(event.target.value)}
+                alignSelf="center" 
+                alignContent="center"
+                justify = "center"
+                align="center"
+                width="50vw"
+                background="white"
+              />
+
+              <h3>Enter Password :</h3>
+              <TextInput
+                placeholder="Enter password"
+                value={password}
+                onChange={event => setPassword(event.target.value)}
+                type="password"
+                width="50vw"
+                pad="large"
+                justify="center"
+                background="white"
+              />
+              </Box>
+              <Box direction="row" gap="small" margin="medium">
+              <Button primary label="SignIn" alignSelf="center" color="#232f3e" onClick={() => DoSignIn(username,password)}/>
+              <Button primary label="SignUp" alignSelf="center" color="#232f3e" onClick={() => DoSignUp(username,password)}/>
+              </Box>
+        </Box>
+        <Box justify="end" align="center" width="60vw" height="100vh" background="#2BBBAD" pad={{"top" : "large"}}>
+          <img src={homePicture} alt="Task Scheduler and Orchestrator"/>
+        </Box>
     </Box>
   );
   
@@ -266,42 +279,59 @@ function AddTask()
       return <Box margin="xlarge">Please login before accessing this section</Box>
   }
 
-  return <Box direction="column" margin={margin} alignSelf="center" width="50%" gap="small">
+  return <Box direction="column" margin={margin} gap="small">
         <Box direction="row" alignSelf="center" justify="center">
-          <h1>Task Scheduler</h1> 
-          <Box pad="medium">
-            <Timer type="digital" />
+          <Box width="100vw" alignSelf="center" background="#2BBBAD" pad="small">
+          <h1>Task Scheduler </h1> 
+          <Timer type="digital" />
           </Box>
         </Box>
+    
+    <Box width="50vw">
+    <h4>Enter Name of Lambda function :</h4>
+    
+    <Tip content="Name to easily identify the lambda function" dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
     <TextInput
       icon = {<Domain/>}
       placeholder="Enter Name of Lambda function"
       LambdaName={LambdaName}
       onChange={event => setLambdaName(event.target.value)}
     />
+    </Tip>
+
+    <h4>Enter Description about Lambda function :</h4>
+    <Tip content="Brief description of the functionality of the Lambda function" dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
     <TextInput
       icon = {<TextAlignFull/>}
       placeholder="Enter Description about Lambda function"
       LambdaDescription={LambdaDescription}
       onChange={event => setLambdaDescription(event.target.value)}
     />
+    </Tip>
 
+     <h4>Enter no. of retries if Lambda fails :</h4>
+     <Tip content="Attempts to make in case the lambda function fails to execute" dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
      <TextInput
       icon = {<Revert/>}
       placeholder="Enter no. of retries if Lambda fails"
       Retries={Retries}
       onChange={event => setRetries(event.target.value)}
     />
+    </Tip>
     
-
+     <h4>Duration between retries (in ms) :</h4>
+     <Tip content="Waiting time between the attempts to retry the execution of a failed Lambda function." dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
      <TextInput
       icon = {<History/>}
       placeholder="Duration between retries in milliseconds"
       RetryGap={RetryGap}
       onChange={event => setRetryGap(event.target.value)}
     />
+    </Tip>
 
-    
+    <Tip content="Schedule based on either a delay from now or a specific date time in future" dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
+    <h4>Scheduling Type :</h4>
+    </Tip>
     <Select
       defaultValue = 'Based on Time Delay in miliseconds'
       options={['Based on Time Delay in miliseconds', 'Based on Date and Time in future, Ex:"28 Mar 2021 23:05:00"']}
@@ -320,6 +350,9 @@ function AddTask()
       onChange={event => setDelayValue(event.target.value)}
     />
 
+    <Tip content="Option to either schedule a already available Lambda from AWS or deploy and schedule a Lambda function written in Python. For deploying a function from scratch some AWS credentials are required." dropProps={{"background" : "#81FCED", "elevation" : "medium", "width" : "medium"}}>
+    <h4>Task Type: </h4>
+    </Tip>
     <Select
       defaultValue = 'Based on URL'
       options={['Based on URL', 'Based on Function']}
@@ -353,6 +386,7 @@ function AddTask()
     DelayValue = {DelayValue}
     />
 
+    </Box>
     
   </Box>
 }
@@ -370,12 +404,15 @@ function UrlOptions({LambdaName,
     if(TaskType === "Based on URL")
     {
       return <Box>
+      <h4>Enter URL of Lambda function :</h4>
+      <Tip content="URL of the already deployed lambda function from AWS" dropProps={{"background" : "#81FCED", "elevation" : "medium", "width" : "medium"}}>
       <TextInput
       icon = {<URL/>}
       placeholder="Enter URL of Lambda function"
       TaskURL={TaskURL}
       onChange={event => setTaskURL(event.target.value)}
       />
+      </Tip>
       <Button 
         primary 
         label="Schedule Task" 
@@ -420,7 +457,7 @@ async function ScheduleUrlTask(LambdaName,
   {
       await axios({
         method : 'post',
-        url : 'http://localhost:5000/tasks',
+        url : backend_url + '/tasks',
         headers: {
         username: sessionStorage.getItem('username'),
         password: sessionStorage.getItem('password')
@@ -442,7 +479,7 @@ async function ScheduleUrlTask(LambdaName,
   else if(SchedulingType === 'Based on Date and Time in future, Ex:"28 Mar 2021 23:05:00"')
       await axios({
         method : 'post',
-        url : 'http://localhost:5000/tasks',
+        url : backend_url + '/tasks',
         headers: {
         username: sessionStorage.getItem('username'),
         password: sessionStorage.getItem('password')
@@ -479,55 +516,76 @@ function FunctionOptions({LambdaName,LambdaDescription,TaskType,Retries,RetryGap
   if(TaskType === "Based on Function")
     {
         return <Box gap="small">
-          
+          <h3>Function details</h3>
+          <h4>Enter function string :</h4>
+          <Tip content="Python function code indented by \n\t wherever required" dropProps={{"background" : "#81FCED", "elevation" : "medium", "width" : "medium"}}>
           <TextInput
             icon = {<Run/>}
             placeholder="Enter function source string"
             FunctionSourceString={FunctionSourceString}
             onChange={event => setFunctionSourceString(event.target.value)}
           />
+          </Tip>
 
+          <h4>Enter comma separated arguments :</h4>
+          <Tip content="Arguments to call the lambda function with at the time of execution" dropProps={{"background" : "#81FCED", "elevation" : "medium", "width" : "medium"}}>
           <TextInput
             icon = {<Waypoint/>}
             placeholder="Enter comma separated arguments"
             Arguments={Arguments}
             onChange={event => setArguments(event.target.value)}
           />
+          </Tip>
 
+          <h4>Enter requirements string :</h4>
+          <Tip content="Additional Python libraries required by the function, leave empty if no additional libraries are required" dropProps={{"background" : "#81FCED", "elevation" : "medium", "width" : "medium"}}>
           <TextInput
             icon = {<Compliance/>}
             placeholder="Enter requirements string"
             Requirements={Requirements}
             onChange={event => setRequirements(event.target.value)}
           />
+          </Tip>
 
+          <h4>Enter region :</h4>
+          <Tip content="AWS Region Code, ex. us-east-1" dropProps={{"background" : "#81FCED", "elevation" : "medium", "width" : "medium"}}>
           <TextInput
             icon = {<MapLocation/>}
             placeholder="Enter region"
             Region={Region}
             onChange={event => setRegion(event.target.value)}
           />
+          </Tip>
 
+          <h4>Enter Access Key :</h4>
+          <Tip content="AWS Account Access Key" dropProps={{"background" : "#81FCED", "elevation" : "medium", "width" : "medium"}}>
           <TextInput
             icon = {<Key/>}
             placeholder="Enter Access Key"
             AccesskeyValue={AccesskeyValue}
             onChange={event => setAccesskeyValue(event.target.value)}
           />
+          </Tip>
 
+          <h4>Enter Secret Access Key</h4>
+          <Tip content="AWS Account Secret Access Key" dropProps={{"background" : "#81FCED", "elevation" : "medium", "width" : "medium"}}>
           <TextInput
             icon = {<UserAdmin/>}
             placeholder="Enter Secret Access Key"
             SecretAccesskey={SecretAccesskey}
             onChange={event => setSecretAccesskey(event.target.value)}
           />
+          </Tip>
 
+          <h4>Enter Session Token</h4>
+          <Tip content="AWS Account Session Token" dropProps={{"background" : "#81FCED", "elevation" : "medium", "width" : "medium"}}>
           <TextInput
             icon = {<Lock/>}
             placeholder="Enter Session Token"
             SessionToken={SessionToken}
             onChange={event => setSessionToken(event.target.value)}
           />
+          </Tip>
 
           <Button 
             primary 
@@ -591,21 +649,12 @@ async function ScheduleFunctionTask(
 
   if(SchedulingType === 'Based on Time Delay in miliseconds')
   {
-    FunctionSourceString = FunctionSourceString.replace(/\\n/g, "\\n")
-    .replace(/\\'/g, "\\'")
-    .replace(/\\"/g, '\\"')
-    .replace(/\\&/g, "\\&")
-    .replace(/\\r/g, "\\r")
-    .replace(/\\t/g, "\\t")
-    .replace(/\\b/g, "\\b")
-    .replace(/\\f/g, "\\f");
       await axios({
         method : 'post',
-        url : 'http://localhost:5000/tasks',
+        url : backend_url + '/tasks',
         headers: {
         username: sessionStorage.getItem('username'),
-        password: sessionStorage.getItem('password'),
-        'Content-Type': 'application/json'
+        password: sessionStorage.getItem('password')
         },
         data : {
         "LambdaName" : LambdaName,
@@ -620,7 +669,7 @@ async function ScheduleFunctionTask(
         "retries" : Retries,
         "timeBetweenRetries" : RetryGap,
         "schedulingOption" : "1",
-        "timeInMS" : DelayValue,
+        "dateTimeValue" : DelayValue,
         "taskType" : "function"
         }
       }).then((response) => toast.info("Task scheduled with id: " + response.data.id, {
@@ -630,7 +679,7 @@ async function ScheduleFunctionTask(
   else if(SchedulingType === 'Based on Date and Time in future, Ex:"28 Mar 2021 23:05:00"')
       await axios({
         method : 'post',
-        url : 'http://localhost:5000/tasks',
+        url : backend_url + '/tasks',
         headers: {
         username: sessionStorage.getItem('username'),
         password: sessionStorage.getItem('password')
@@ -648,7 +697,7 @@ async function ScheduleFunctionTask(
         "retries" : Retries,
         "timeBetweenRetries" : RetryGap,
         "schedulingOption" : "2",
-        "dateTimeValue" : DelayValue,
+        "timeInMS" : DelayValue,
         "taskType" : "function"
         }
       }).then((response) => toast.info("Task scheduled with id: " + response.data.id, {
@@ -661,7 +710,7 @@ async function ScheduleFunctionTask(
 
 
 const loadTasks = () =>
-  fetch("http://localhost:5000/tasks/retrieve", {
+  fetch(backend_url + "/tasks/retrieve", {
   method: 'GET',
   headers: {
     'username': sessionStorage.getItem('username'),
@@ -707,18 +756,6 @@ async function cancelTask(Taskid)
       }).then((res) => toast.info(res.data))
 }
 
-
-async function retriveTasksWithStatus(Taskid, set)
-{
-   await axios({
-        method : 'GET',
-        url : backend_url + '/tasks/retrieve/' + Taskid,
-        headers: {
-          username: sessionStorage.getItem('username'),
-          password: sessionStorage.getItem('password')
-        }
-      }).then((res) => console.log(res))
-}
 
 const retriveSingleTaskDetails = async ({TaskID}) => {
       console.log("FETCHING:", backend_url + '/tasks/' + TaskID)
@@ -865,12 +902,6 @@ function RenderAllTasks({TaskStatus})
 
   let [timeDelay, setTimeDelay] = React.useState('');
 
-  let username = sessionStorage.getItem('username')
-  if(username === null)
-  {
-      return <Box margin="xlarge">Please login before accessing this section</Box>
-  }
-
   return <Box direction="column">
     <Async promiseFn={loadTasks}>
       {({data, err, isLoading}) => {
@@ -892,8 +923,8 @@ function RenderAllTasks({TaskStatus})
             data.map(task => (
               <Card border="solid" key={task.taskid} pad="small" background={colours[task.Status]}>
                 <CardBody > TaskId : {task.Taskid}</CardBody>
-                <CardBody > {task.LambdaName}</CardBody>
-                <CardBody > {task.LambdaDescription}</CardBody>
+                <CardBody > Lambda Name : {task.LambdaName ? task.LambdaName : "Lambda Function"}</CardBody>
+                <CardBody > Lambda Description : {task.LambdaDescription ? task.LambdaDescription :  "Lambda function to perform a task" }</CardBody>
                 <CardBody > RunTime : {task.Runtime}</CardBody>
                 <CardBody > Retries : {task.Retries ? task.Retries : 0}</CardBody>
                 <CardBody > Time Between Retries : {task.TimeBetweenRetries ? task.TimeBetweenRetries : 0}</CardBody>
@@ -960,10 +991,16 @@ function RetrieveTasks()
    "left" : "xlarge"
     }
 
-    const [RetrieveType, setRetrieveType] = React.useState('Status');
+  const [RetrieveType, setRetrieveType] = React.useState('Status');
+
+  let username = sessionStorage.getItem('username')
+  if(username === null)
+  {
+      return <Box margin="xlarge">Please login before accessing this section</Box>
+  }
 
   return <Box margin={margin}>
-    <Box align="start" justify="start">
+    <Box align="start" justify="start" background="#2BBBAD" width="100vw" pad="small">
       <h2>Retrieve Task Details</h2>
     </Box>
     <Box direction="row" gap="small" align="center" justify="start">
@@ -985,9 +1022,10 @@ function RetrieveTasks()
 
 function About()
 {
-  return <Box direction="column" margin="xlarge" padding="large" border="solid" height="30vh" width="50vw" align="center" justify="center">
+  
+  return <Box direction="column" margin="xlarge" padding="large" border="solid" height="30vh" width="50vw" align="center" justify="center" background="#33b5e5">
   <text size="Large">Built by Mehul Thakral & Divyansh Dixit for Crio Winter of Doing Stage 3</text>
-  <text size="Large">Special thanks to our mentors and the people at Crio for their guidance</text>
+  <text size="Large">Special thanks to our mentors and the people at Crio for their guidance.</text>
   </Box>
 }
 
@@ -1027,9 +1065,18 @@ async function orchestratorCall(JSONdata)
 }
 
 
-const Orchestrator = () => (
-  <Box margin={{"left" : "xlarge"}}>
-    <h3>Task Orchestrator</h3>
+const Orchestrator = () => 
+{
+  let username = sessionStorage.getItem('username')
+  if(username === null)
+  {
+      return <Box margin="xlarge">Please login before accessing this section</Box>
+  }
+
+  return <Box margin={{"left" : "xlarge"}}>
+    <Box width="100vw" alignSelf="center" background="#2BBBAD" pad="small">
+    <h2>Task Orchestrator</h2>
+    </Box>
     <hr />
     <Formik
       initialValues={{
@@ -1069,7 +1116,9 @@ const Orchestrator = () => (
       onSubmit={(values) => orchestratorCall(values)}
       render={({ values }) => (
         <Form>
+          <Tip content="Waiting time before the first task in the orchestration starts executing." dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
           <h5>Enter Initial Delay (in ms) </h5>
+          </Tip>
           <Field placeholder="Inital Delay" name={`initialDelay`} />
           <ErrorMessage name={`initialDelay`} />
           <h4>Tasks for Orchestration</h4>
@@ -1082,15 +1131,19 @@ const Orchestrator = () => (
                   {tasks && tasks.length > 0
                     ? tasks.map((task, index) => (
                         <Box key={index} gap="xsmall" border="all" elevation="small" pad="small">
-
+                          
+                          <Tip content="URL of the lambda function" dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
                           <h5>Enter TaskURL</h5>
+                          </Tip>
                           <Field
                             placeholder="TaskURL"
                             name={`tasks.${index}.taskURL`}
                           />
                           <ErrorMessage name={`tasks.${index}.taskURL`} />
                           
+                          <Tip content="URL of the lambda function which does condition check after execution of this task" dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
                           <h5>Enter Condition Check Task URL</h5>
+                          </Tip>
                           <Field
                             placeholder="Condition Check Task URL"
                             name={`tasks.${index}.conditionCheckTaskURL`}
@@ -1099,7 +1152,9 @@ const Orchestrator = () => (
                             name={`tasks.${index}.conditionCheckTaskURL`}
                           />
                          
+                          <Tip content="URL of the lambda function to execute in case this task fails" dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
                           <h5>Enter Fallback Task URL</h5>
+                          </Tip>
                           <Field
                             placeholder="Fallback Task URL"
                             name={`tasks.${index}.fallbackTaskURL`}
@@ -1108,7 +1163,9 @@ const Orchestrator = () => (
                             name={`tasks.${index}.fallbackTaskURL`}
                           />
                           
+                          <Tip content="Waiting time before condition check happens for this task" dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
                           <h5>Enter Time delay for condition check (in ms)</h5>
+                          </Tip>
                           <Field
                             placeholder="Time delay for condition check (in ms)"
                             name={`tasks.${index}.timeDelayForConditionCheck`}
@@ -1117,8 +1174,9 @@ const Orchestrator = () => (
                             name={`tasks.${index}.timeDelayForConditionCheck`}
                           />
 
-                          
+                          <Tip content="No. of attempts to check if the condition check function executed successfully." dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
                           <h5>Enter no. of retries for condition check</h5>
+                          </Tip>
                           <Field
                             placeholder="No. of retries for condition check"
                             name={`tasks.${index}.conditionCheckRetries`}
@@ -1127,8 +1185,9 @@ const Orchestrator = () => (
                             name={`tasks.${index}.conditionCheckRetries`}
                           />
 
-                          
+                          <Tip content="Waiting time in between the attempts for condition check" dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
                           <h5>Enter time delay between retries of condition check (in ms)</h5>
+                          </Tip>
                           <Field
                             placeholder="Time delay between retries of condition check (in ms)"
                             name={`tasks.${index}.timeDelayBetweenRetries`}
@@ -1179,7 +1238,7 @@ const Orchestrator = () => (
       )}
     />
   </Box>
-);
+};
 
 async function modifyOrchestratorCall(JSONdata,Taskid)
 {
@@ -1209,162 +1268,167 @@ async function modifyOrchestratorCall(JSONdata,Taskid)
       })
 }
 
-const ModifyOrchestrationForm = ({Taskid}) => (
-  <Box margin={{"left" : "xlarge"}}>
-    <hr />
-    <Formik
-      initialValues={{
-        tasks: [],
-        initialDelay: 0
-      }}
-      validationSchema={Yup.object({
-        initialDelay: Yup.number("Must be number")
-          .integer("Must be a integer")
-         .required("Initial Delay is required"),
-        tasks: Yup.array().of(
-          Yup.object().shape({
-            taskURL: Yup.string()
-              .url("Must be a url")
-              .required("TaskURL required"),
-            conditionCheckTaskURL: Yup.string()
-              .url("Must be a url")
-              .required("Condition Check TaskURL required"),
-            fallbackTaskURL: Yup.string()
-              .url("Must be a url")
-              .required("Condition Check TaskURL required"),
-            timeDelayForConditionCheck: Yup.number("Must be number")
-              .positive("Must be positive")
+function ModifyOrchestrationForm({Taskid,Tasks,InitialDelay})
+{
+  return <Box margin={{"left" : "xlarge"}}>
+        <hr />
+        <Formik
+          initialValues={{
+            tasks: Tasks,
+            initialDelay: InitialDelay
+          }}
+          validationSchema={Yup.object({
+            initialDelay: Yup.number("Must be number")
               .integer("Must be a integer")
-              .required("Time Delay is required"),
-            conditionCheckRetries: Yup.number("Must be number")
-              .positive("Must be positive")
-              .integer("Must be a integer")
-              .required("No. of retries is required"),
-            timeDelayBetweenRetries: Yup.number("Must be number")
-              .positive("Must be positive")
-              .integer("Must be a integer")
-              .required("Time delay is required")
-          })
-        )
-      })}
-      onSubmit={(values) => modifyOrchestratorCall(values,Taskid)}
-      render={({ values }) => (
-        <Form>
-          <h5>Enter Initial Delay (in ms) </h5>
-          <Field placeholder="Inital Delay" name={`initialDelay`} />
-          <ErrorMessage name={`initialDelay`} />
-          <h4>Tasks for Orchestration</h4>
-          <FieldArray
-            name="tasks"
-            render={(arrayHelpers) => {
-              const tasks = values.tasks;
-              return (
-                <Box gap="small" width="50vw">
-                  {tasks && tasks.length > 0
-                    ? tasks.map((task, index) => (
-                        <Box key={index} gap="xsmall" border="all" elevation="small" pad="small">
+            .required("Initial Delay is required"),
+            tasks: Yup.array().of(
+              Yup.object().shape({
+                taskURL: Yup.string()
+                  .url("Must be a url")
+                  .required("TaskURL required"),
+                conditionCheckTaskURL: Yup.string()
+                  .url("Must be a url")
+                  .required("Condition Check TaskURL required"),
+                fallbackTaskURL: Yup.string()
+                  .url("Must be a url")
+                  .required("Condition Check TaskURL required"),
+                timeDelayForConditionCheck: Yup.number("Must be number")
+                  .positive("Must be positive")
+                  .integer("Must be a integer")
+                  .required("Time Delay is required"),
+                conditionCheckRetries: Yup.number("Must be number")
+                  .positive("Must be positive")
+                  .integer("Must be a integer")
+                  .required("No. of retries is required"),
+                timeDelayBetweenRetries: Yup.number("Must be number")
+                  .positive("Must be positive")
+                  .integer("Must be a integer")
+                  .required("Time delay is required")
+              })
+            )
+          })}
+          onSubmit={(values) => modifyOrchestratorCall(values,Taskid)}
+          render={({ values }) => (
+            <Form>
+              <h5>Enter Initial Delay (in ms) </h5>
+              <Field placeholder="Inital Delay" name={`initialDelay`} />
+              <ErrorMessage name={`initialDelay`} />
+              <h4>Tasks for Orchestration</h4>
+              <FieldArray
+                name="tasks"
+                render={(arrayHelpers) => {
+                  const tasks = values.tasks;
+                  return (
+                    <Box gap="small" width="50vw">
+                      {tasks && tasks.length > 0
+                        ? tasks.map((task, index) => (
+                            <Box key={index} gap="xsmall" border="all" elevation="small" pad="small">
 
-                          <h5>Enter TaskURL</h5>
-                          <Field
-                            placeholder="TaskURL"
-                            name={`tasks.${index}.taskURL`}
-                          />
-                          <ErrorMessage name={`tasks.${index}.taskURL`} />
-                          
-                          <h5>Enter Condition Check Task URL</h5>
-                          <Field
-                            placeholder="Condition Check Task URL"
-                            name={`tasks.${index}.conditionCheckTaskURL`}
-                          />
-                          <ErrorMessage
-                            name={`tasks.${index}.conditionCheckTaskURL`}
-                          />
-                         
-                          <h5>Enter Fallback Task URL</h5>
-                          <Field
-                            placeholder="Fallback Task URL"
-                            name={`tasks.${index}.fallbackTaskURL`}
-                          />
-                          <ErrorMessage
-                            name={`tasks.${index}.fallbackTaskURL`}
-                          />
-                          
-                          <h5>Enter Time delay for condition check (in ms)</h5>
-                          <Field
-                            placeholder="Time delay for condition check (in ms)"
-                            name={`tasks.${index}.timeDelayForConditionCheck`}
-                          />
-                          <ErrorMessage
-                            name={`tasks.${index}.timeDelayForConditionCheck`}
-                          />
+                              <h5>Enter TaskURL</h5>
+                              <Field
+                                placeholder="TaskURL"
+                                name={`tasks.${index}.taskURL`}
+                              />
+                              <ErrorMessage name={`tasks.${index}.taskURL`} />
+                              
+                              <h5>Enter Condition Check Task URL</h5>
+                              <Field
+                                placeholder="Condition Check Task URL"
+                                name={`tasks.${index}.conditionCheckTaskURL`}
+                              />
+                              <ErrorMessage
+                                name={`tasks.${index}.conditionCheckTaskURL`}
+                              />
+                            
+                              <h5>Enter Fallback Task URL</h5>
+                              <Field
+                                placeholder="Fallback Task URL"
+                                name={`tasks.${index}.fallbackTaskURL`}
+                              />
+                              <ErrorMessage
+                                name={`tasks.${index}.fallbackTaskURL`}
+                              />
+                              
+                              <h5>Enter Time delay for condition check (in ms)</h5>
+                              <Field
+                                placeholder="Time delay for condition check (in ms)"
+                                name={`tasks.${index}.timeDelayForConditionCheck`}
+                              />
+                              <ErrorMessage
+                                name={`tasks.${index}.timeDelayForConditionCheck`}
+                              />
 
-                          
-                          <h5>Enter no. of retries for condition check</h5>
-                          <Field
-                            placeholder="No. of retries for condition check"
-                            name={`tasks.${index}.conditionCheckRetries`}
-                          />
-                          <ErrorMessage
-                            name={`tasks.${index}.conditionCheckRetries`}
-                          />
+                              
+                              <h5>Enter no. of retries for condition check</h5>
+                              <Field
+                                placeholder="No. of retries for condition check"
+                                name={`tasks.${index}.conditionCheckRetries`}
+                              />
+                              <ErrorMessage
+                                name={`tasks.${index}.conditionCheckRetries`}
+                              />
 
-                          
-                          <h5>Enter time delay between retries of condition check (in ms)</h5>
-                          <Field
-                            placeholder="Time delay between retries of condition check (in ms)"
-                            name={`tasks.${index}.timeDelayBetweenRetries`}
-                          />
-                          <ErrorMessage
-                            name={`tasks.${index}.timeDelayBetweenRetries`}
-                          />
+                              
+                              <h5>Enter time delay between retries of condition check (in ms)</h5>
+                              <Field
+                                placeholder="Time delay between retries of condition check (in ms)"
+                                name={`tasks.${index}.timeDelayBetweenRetries`}
+                              />
+                              <ErrorMessage
+                                name={`tasks.${index}.timeDelayBetweenRetries`}
+                              />
 
-  
-
-                          <Button
-                            type="button"
-                            onClick={() => arrayHelpers.remove(index)} // remove a task from the list
-                            justify="center"
-                            alignSelf="start" 
-                            color="#232f3e" 
-                            icon={<Trash />}
-                          />
-                          
       
-                        </Box>
-                      ))
-                    : null}
-                  <Button
-                    type="button"
-                    onClick={() => arrayHelpers.push({})} // insert an empty string at a position
-                    label="ADD TASK"
-                    justify="center"
-                    alignSelf="start" 
-                    color="#232f3e" 
-                  />
-                  
-                  <div>
-                    <Button 
-                    label="MODIFY ORCHESTRATION"
-                    type="submit"
-                    justify="center"
-                    alignSelf="start" 
-                    color="#232f3e"
-                    />
-                  </div>
-                </Box>
-              );
-            }}
-          />
-          <hr />
-        </Form>
-      )}
-    />
-  </Box>
-);
+
+                              <Button
+                                type="button"
+                                onClick={() => arrayHelpers.remove(index)} // remove a task from the list
+                                justify="center"
+                                alignSelf="start" 
+                                color="#232f3e" 
+                                icon={<Trash />}
+                              />
+                              
+          
+                            </Box>
+                          ))
+                        : null}
+                      <Button
+                        type="button"
+                        onClick={() => arrayHelpers.push({})} // insert an empty string at a position
+                        label="ADD TASK"
+                        justify="center"
+                        alignSelf="start" 
+                        color="#232f3e" 
+                      />
+                      
+                      <div>
+                        <Button 
+                        label="MODIFY ORCHESTRATION"
+                        type="submit"
+                        justify="center"
+                        alignSelf="start" 
+                        color="#232f3e"
+                        />
+                      </div>
+                    </Box>
+                  );
+                }}
+              />
+              <hr />
+            </Form>
+          )}
+        />
+      </Box>
+  //   }
+  //   }
+  // }
+  // </Async>
+};
 
 
 
-function ModifyOrchestration({Taskid})
+function ModifyOrchestration({Taskid,Tasks,InitialDelay})
 {
   // let subtitle;
   const [modalIsOpen,setIsOpen] = React.useState(false);
@@ -1415,7 +1479,7 @@ function ModifyOrchestration({Taskid})
           color="#232f3e" 
           icon={<Trash />} 
           />
-          <ModifyOrchestrationForm Taskid={Taskid}/>
+          <ModifyOrchestrationForm Taskid={Taskid} Tasks={Tasks} InitialDelay={InitialDelay}/>
           </div>
         </Modal>
       </Box>
@@ -1436,7 +1500,7 @@ function CancelOrchestration(Taskid)
 }
 
 const FetchOrchestratorTasks = () =>
-  fetch("http://localhost:5000/taskset/retrieve", {
+  fetch(backend_url + "/taskset/retrieve", {
   method: 'GET',
   headers: {
     username: sessionStorage.getItem('username'),
@@ -1481,12 +1545,10 @@ function RenderOrchestratorTasks({TaskStatus})
           {
             data.map(task => (
               <Card pad="small" border="solid" key={task.id} background={colours[task.status]} width="50vw">
-                <CardBody > TaskId : {task.id}</CardBody>
+                <CardBody > TaskSet Id : {task.id}</CardBody>
                 <CardBody > Initial Delay : {task.initialDelay}</CardBody>
                 <CardBody > Status : {task.status}</CardBody>
-                <CardBody > URL : {task.TaskURL}</CardBody>
-                <CardBody > Time taken to execute : {task.TimeToExecute} ms</CardBody>
-                <CardBody > Schedule Type : {task.ScheduleType}</CardBody>
+                
                 <Box>
                   {task.tasks.map((taskDetail, index) => {
                     return <Box margin="small" key={index}>
@@ -1502,7 +1564,7 @@ function RenderOrchestratorTasks({TaskStatus})
                 </Box>
 
                 <Box direction="row">
-                  <ModifyOrchestration Taskid={task.id}/>
+                  <ModifyOrchestration Taskid={task.id} Tasks={task.tasks} InitialDelay={task.initialDelay}/>
                   <Button primary label="Cancel" alignSelf="center" color="#232f3e" icon={<Trash />} margin = "small" onClick={() => CancelOrchestration(task.id)}/>
                 </Box>
 
@@ -1542,11 +1604,6 @@ function RetrieveOrchestrationsWithStatus({RetrieveType})
 
 function OrchestratorTasks()
 {
-  let [timeDelay, setTimeDelay] = React.useState('');
-  let [taskId, setTaskId] = React.useState('');
-  let [taskStatus, setTaskStatus] = React.useState('');
-  let [RetrieveType, setRetrieveType] = React.useState('');
-
   let username = sessionStorage.getItem('username')
   if(username === null)
   {
@@ -1554,7 +1611,9 @@ function OrchestratorTasks()
   }
 
   return <Box direction="column" margin={{"left" : "xlarge"}} align="start" justify="start">
-    <h1>Retrieve Details of Orchestrated Tasks</h1>
+    <Box width="100vw" alignSelf="center" background="#2BBBAD" pad="small">
+      <h1>Retrieve Details of Orchestrated Tasks</h1>
+    </Box>
     <RetrieveOrchestrationsWithStatus/>
 
     
