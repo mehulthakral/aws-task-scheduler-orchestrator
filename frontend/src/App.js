@@ -649,12 +649,21 @@ async function ScheduleFunctionTask(
 
   if(SchedulingType === 'Based on Time Delay in miliseconds')
   {
+    FunctionSourceString = FunctionSourceString.replace(/\\n/g, "\\n")
+    .replace(/\\'/g, "\\'")
+    .replace(/\\"/g, '\\"')
+    .replace(/\\&/g, "\\&")
+    .replace(/\\r/g, "\\r")
+    .replace(/\\t/g, "\\t")
+    .replace(/\\b/g, "\\b")
+    .replace(/\\f/g, "\\f");
       await axios({
         method : 'post',
         url : backend_url + '/tasks',
         headers: {
         username: sessionStorage.getItem('username'),
-        password: sessionStorage.getItem('password')
+        password: sessionStorage.getItem('password'),
+        'Content-Type': 'application/json'
         },
         data : {
         "LambdaName" : LambdaName,
@@ -669,7 +678,7 @@ async function ScheduleFunctionTask(
         "retries" : Retries,
         "timeBetweenRetries" : RetryGap,
         "schedulingOption" : "1",
-        "dateTimeValue" : DelayValue,
+        "timeInMS" : DelayValue,
         "taskType" : "function"
         }
       }).then((response) => toast.info("Task scheduled with id: " + response.data.id, {
@@ -697,7 +706,7 @@ async function ScheduleFunctionTask(
         "retries" : Retries,
         "timeBetweenRetries" : RetryGap,
         "schedulingOption" : "2",
-        "timeInMS" : DelayValue,
+        "dateTimeValue" : DelayValue,
         "taskType" : "function"
         }
       }).then((response) => toast.info("Task scheduled with id: " + response.data.id, {
@@ -779,6 +788,8 @@ function TaskDetails({TaskID,ButtonClicked})
 {
     let colours = {
     "Completed" : "#7cd992",
+    "Deploying": "#ff7f50",
+    "DeploymentFailed": "#de3163", 
     "Cancelled" : "#a8a8a8",
     "Failed" : "#eb6060",
     "Running" : "#f7e463",
@@ -892,6 +903,8 @@ function RenderAllTasks({TaskStatus})
 {
     let colours = {
     "Completed" : "#7cd992",
+    "Deploying": "#ff7f50",
+    "DeploymentFailed": "#de3163",
     "Cancelled" : "#a8a8a8",
     "Failed" : "#eb6060",
     "Running" : "#f7e463",
@@ -972,7 +985,8 @@ function RetrieveTasksWithStatus({RetrieveType="All"})
         <Box>
         <Select
           defaultValue = 'All'
-          options={["All", "Completed", "Cancelled", "Failed", "Running", "Scheduled"]}
+          options={["All", "Completed", "Deploying",
+          "DeploymentFailed", "Cancelled", "Failed", "Running", "Scheduled"]}
           TaskStatus={TaskStatus}
           onChange={({ option }) => setTaskStatus(option)}
         />

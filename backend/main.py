@@ -86,7 +86,7 @@ def scheduleInDb(TaskURL, RunTime, LambdaName, LambdaDescription, Username, Sche
 
     id = None
     while(True):
-        id = random.randint(1, 1e17)
+        id = random.randint(1, 1e7)
         retrieveQuery = "SELECT * FROM " + tableName + \
         " WHERE id = '{0}'".format(id)
         cur.execute(retrieveQuery)
