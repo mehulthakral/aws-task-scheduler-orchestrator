@@ -84,10 +84,19 @@ def scheduleInDb(TaskURL, RunTime, LambdaName, LambdaDescription, Username, Sche
 
     print("SCHEDULING IN DB: ", TaskURL, RunTime)
 
-    idQuery = "INSERT INTO " + tableName + " (url,run_time,lambda_name,lambda_description,status,execution_time,username,scheduling_type,retries,time_between_retries)" + " VALUES('{url}','{run_time}','{lambda_name}','{lambda_description}','Scheduled',0,'{username}','{scheduling_type}','{retries}','{time_between_retries}')".format(
-        url=TaskURL, run_time=RunTime, lambda_name=LambdaName, lambda_description=LambdaDescription, username=Username, scheduling_type=SchedulingType, retries=Retries, time_between_retries=TimeBetweenRetries) + " RETURNING id;"
+    id = None
+    while(True):
+        id = random.randint(1, 1e17)
+        retrieveQuery = "SELECT * FROM " + tableName + \
+        " WHERE id = '{0}'".format(id)
+        cur.execute(retrieveQuery)
+        fetchedTasks = cur.fetchall()
+        if(len(fetchedTasks)==0):
+            break
+
+    idQuery = "INSERT INTO " + tableName + " (id,url,run_time,lambda_name,lambda_description,status,execution_time,username,scheduling_type,retries,time_between_retries)" + " VALUES('{id}','{url}','{run_time}','{lambda_name}','{lambda_description}','Scheduled',0,'{username}','{scheduling_type}','{retries}','{time_between_retries}')".format(id=id, url=TaskURL, run_time=RunTime, lambda_name=LambdaName, lambda_description=LambdaDescription, username=Username, scheduling_type=SchedulingType, retries=Retries, time_between_retries=TimeBetweenRetries)
     cur.execute(idQuery)
-    Taskid = cur.fetchone()[0]
+    Taskid = id
     conn.commit()
 
     print("Task scheduled with id : ", Taskid)
