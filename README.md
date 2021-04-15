@@ -25,11 +25,11 @@
 
 <h2> Screenshots: </h2>
 <ol>
-  <li>Login Page:<img src="screenshots/s1.png"></li>
-  <li>Adding Single Task:<img src="screenshots/s2.png"></li>
-  <li>Retrieving Tasks:<img src="screenshots/s3.png"></li>
-  <li>Adding Orchestration:<img src="screenshots/s4.png"></li>
-  <li>Retrieving Orchestrations:<img src="screenshots/s5.png"></li>
-  <li>Swagger API Documentation:<img src="screenshots/s6.png"></li>
-  <li>About Us:<img src="screenshots/s7.png"></li>
+  <li>Login Page:<br><img src="screenshots/s1.png"></li>
+  <li>Adding Single Task:<br><img src="screenshots/s2.png"></li>
+  <li>Retrieving Tasks:<br><img src="screenshots/s3.png"></li>
+  <li>Adding Orchestration:<br><img src="screenshots/s4.png"></li>
+  <li>Retrieving Orchestrations:<br><img src="screenshots/s5.png"></li>
+  <li>Swagger API Documentation:<br><img src="screenshots/s6.png"></li>
+  <li>About Us:<br><img src="screenshots/s7.png"></li>
 </ol>
