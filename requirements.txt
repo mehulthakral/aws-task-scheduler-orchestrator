@@ -1,0 +1,11 @@
+Flask
+Werkzeug
+Flask-Cors
+requests
+psycopg2
+awscli
+gunicorn
+SQLAlchemy
+APScheduler
+pytz
+pexpect
