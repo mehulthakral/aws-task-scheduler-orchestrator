@@ -117,9 +117,37 @@ def deploy(f, requirements, LambdaName, region="", access_key="", secret_access_
     if(correct==False):
         return res
 
+    # correct, res = runProcess("zipinfo serverless-flask.zip","p",LambdaName+"/my-package")
+    # if(correct==False):
+    #     return res
+
+    correct, res = runProcess("mkdir temp","p",LambdaName+"/my-package")
+    if(correct==False):
+        return res
+
+    correct, res = runProcess("unzip serverless-flask.zip -d temp","p",LambdaName+"/my-package")
+    if(correct==False):
+        return res
+
     stream = os.popen("chmod 777 -R {0}".format(LambdaName))
     output = stream.read()
     print(output)
+
+    correct, res = runProcess("rm serverless-flask.zip","p",LambdaName+"/my-package")
+    if(correct==False):
+        return res
+
+    correct, res = runProcess("zip -r ../serverless-flask.zip .","p",LambdaName+"/my-package/temp")
+    if(correct==False):
+        return res
+
+    # correct, res = runProcess("zipinfo serverless-flask.zip","p",LambdaName+"/my-package")
+    # if(correct==False):
+    #     return res
+
+    correct, res = runProcess("rm -rf temp","p",LambdaName+"/my-package")
+    if(correct==False):
+        return res
 
     # correct, res = runProcess("serverless deploy --aws-profile default",LambdaName)
     correct, res = runProcess("serverless deploy --package my-package","d",LambdaName)
