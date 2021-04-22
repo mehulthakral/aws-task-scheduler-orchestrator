@@ -23,7 +23,7 @@ import Async from 'react-async';
 
 const axios = require('axios');
 
-let backend_url = "http://localhost:5000";
+let backend_url = "https://task-scheduler-orchestrator.herokuapp.com";
 
 Modal.setAppElement('#root');
 const customStyles = {
@@ -789,7 +789,7 @@ function TaskDetails({TaskID,ButtonClicked})
     let colours = {
     "Completed" : "#7cd992",
     "Deploying": "#ff7f50",
-    "DeploymentFailed": "#de3163", 
+    "Deployment Failed": "#de3163", 
     "Cancelled" : "#a8a8a8",
     "Failed" : "#eb6060",
     "Running" : "#f7e463",
@@ -835,6 +835,7 @@ function TaskDetails({TaskID,ButtonClicked})
                 <CardBody > URL : {data.TaskURL}</CardBody>
                 <CardBody > Time taken to execute : {data.TimeToExecute} ms</CardBody>
                 <CardBody > Schedule Type : {data.ScheduleType}</CardBody>
+        
                 <Box direction="row">
                   <DropButton primary label="Modify" alignSelf="start" color="#232f3e" icon={<Edit />} margin = "small"
                   dropContent={
@@ -904,7 +905,7 @@ function RenderAllTasks({TaskStatus})
     let colours = {
     "Completed" : "#7cd992",
     "Deploying": "#ff7f50",
-    "DeploymentFailed": "#de3163",
+    "Deployment Failed": "#de3163",
     "Cancelled" : "#a8a8a8",
     "Failed" : "#eb6060",
     "Running" : "#f7e463",
@@ -945,6 +946,8 @@ function RenderAllTasks({TaskStatus})
                 <CardBody > URL : {task.TaskURL}</CardBody>
                 <CardBody > Time taken to execute : {task.TimeToExecute} ms</CardBody>
                 <CardBody > Schedule Type : {task.ScheduleType}</CardBody>
+                <CardBody > {task.ScheduleType === 'function' ?  "Requirements : " + (task.requirements === "" ? "No additional requirements" : task.requirements) : null}</CardBody>
+                <CardBody > {task.ScheduleType === 'function' ?  <CardBody> Function Code : <code>{task.funcSrc}</code></CardBody> : null}</CardBody>
                 <Box direction="row">
                   <DropButton primary label="Modify" alignSelf="start" color="#232f3e" icon={<Edit />} margin = "small"
                   dropContent={
@@ -969,7 +972,7 @@ function RenderAllTasks({TaskStatus})
 
 }
 
-function RetrieveTasksWithStatus({RetrieveType="All"})
+function RetrieveTasksWithStatus({RetrieveType})
 {
     const [TaskStatus, setTaskStatus] = React.useState('Status');
 
@@ -986,7 +989,7 @@ function RetrieveTasksWithStatus({RetrieveType="All"})
         <Select
           defaultValue = 'All'
           options={["All", "Completed", "Deploying",
-          "DeploymentFailed", "Cancelled", "Failed", "Running", "Scheduled"]}
+          "Deployment Failed", "Cancelled", "Failed", "Running", "Scheduled"]}
           TaskStatus={TaskStatus}
           onChange={({ option }) => setTaskStatus(option)}
         />
@@ -1019,6 +1022,7 @@ function RetrieveTasks()
     </Box>
     <Box direction="row" gap="small" align="center" justify="start">
       <h3>Get task details based on</h3>
+    
         <Box width="small">
         <Select
           defaultValue = 'Status'
@@ -1130,9 +1134,12 @@ const Orchestrator = () =>
       onSubmit={(values) => orchestratorCall(values)}
       render={({ values }) => (
         <Form>
-          <Tip content="Waiting time before the first task in the orchestration starts executing." dropProps={{"background" : "#81FCED", "elevation" : "medium"}}>
-          <h5>Enter Initial Delay (in ms) </h5>
-          </Tip>
+          <Box width="medium"> 
+            <Tip content="Waiting time before the first task in the orchestration starts executing." dropProps={{"background" : "#81FCED", "elevation" : "medium", "margin" : {"left" : "xlarge"}}}>
+              <h5>Enter Initial Delay (in ms) </h5>
+            </Tip>
+          </Box>
+
           <Field placeholder="Inital Delay" name={`initialDelay`} />
           <ErrorMessage name={`initialDelay`} />
           <h4>Tasks for Orchestration</h4>
